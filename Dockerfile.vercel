@@ -1,0 +1,37 @@
+# FileForge: one Vercel deployment with Ghostscript included.
+# Uses pnpm for dependency installation. The 500 MB upload limit is unchanged.
+
+FROM node:24-bookworm-slim AS deps
+WORKDIR /app
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable \
+  && corepack prepare pnpm@10.15.1 --activate \
+  && pnpm install --frozen-lockfile --ignore-scripts
+
+FROM node:24-bookworm-slim AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY package.json ./
+COPY . .
+RUN corepack enable \
+  && corepack prepare pnpm@10.15.1 --activate
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm run build
+
+FROM node:24-bookworm-slim AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV HOSTNAME=0.0.0.0
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 ghostscript poppler-utils libreoffice-writer libreoffice-calc libreoffice-impress imagemagick libheif1 libheif-examples zip unzip ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/scripts ./scripts
+
+CMD ["node", "server.js"]

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cleanup",
+      "schedule": "0 3 * * *"
+    }
+  ],
+  "functions": {
+    "app/api/compress/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/convert/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/cleanup/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/download/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}
