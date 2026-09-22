@@ -90,8 +90,11 @@ export async function POST(request: Request): Promise<NextResponse> {
         try {
           const payload = JSON.parse(clientPayload || '{}') as {
             filename?: unknown;
+            pathname?: unknown;
           };
           filename = cleanFilename(payload.filename);
+          const requestedPathname =
+            typeof payload.pathname === 'string' ? payload.pathname : '';
         } catch {
           // Fall back to the safe default filename.
         }
@@ -102,10 +105,20 @@ export async function POST(request: Request): Promise<NextResponse> {
           throw new Error('This file type is not supported by FileForge.');
         }
 
-        const pathname = `fileforge/${user.id}/${crypto.randomUUID()}/input${extension}`;
+        const parts = requestedPathname.split('/');
+        const validPathname =
+          parts.length === 4 &&
+          parts[0] === 'fileforge' &&
+          parts[1] === user.id &&
+          /^[0-9a-f-]{36}$/i.test(parts[2]) &&
+          parts[3] === `input${extension}`;
+
+        if (!validPathname) {
+          throw new Error('Invalid upload path.');
+        }
 
         return {
-          pathname,
+          pathname: requestedPathname,
           allowedContentTypes: CONTENT_TYPES,
           maximumSizeInBytes: MAX_UPLOAD_BYTES,
           validUntil: Date.now() + 60 * 60 * 1000,
