@@ -117,11 +117,18 @@ export default function Home() {
     clearResult(); setBusy(true); setPhase('uploading'); setError(false); setProgress(0); setMessage(mode === 'compress' ? 'Uploading your PDF securely…' : `Uploading your file for ${tool.label}…`);
     const controller = new AbortController(); requestRef.current = controller;
     try {
-      const blob = await upload(`fileforge/${file.name}`, file, {
+      const extension = `.${file.name.split('.').pop()?.toLowerCase() || ''}`;
+      const uploadId = crypto.randomUUID();
+      const uploadPathname = `fileforge/${user.id}/${uploadId}/input${extension}`;
+      const blob = await upload(uploadPathname, file, {
         access: 'private',
         contentType: contentTypeByExtension[`.${file.name.split('.').pop()?.toLowerCase() || ''}`] || file.type || undefined,
         handleUploadUrl: mode === 'compress' ? '/api/blob/upload' : '/api/convert/upload',
-        clientPayload: JSON.stringify({ filename: file.name, conversionId: mode === 'convert' ? tool.id : undefined }),
+        clientPayload: JSON.stringify({
+          filename: file.name,
+          conversionId: mode === 'convert' ? tool.id : undefined,
+          pathname: uploadPathname,
+        }),
         multipart: file.size > 10 * 1024 * 1024,
         abortSignal: controller.signal,
         onUploadProgress: ({ percentage }) => {
@@ -131,10 +138,13 @@ export default function Home() {
         },
       });
       if (!blob.pathname) throw new Error('The upload did not return a valid file reference.');
+      const inputPathname = blob.pathname;
       setPhase('processing');
       setProgress(92); setMessage(mode === 'compress' ? 'Optimizing and validating your PDF…' : `Converting with ${tool.label}…`);
       const endpoint = mode === 'compress' ? '/api/compress' : '/api/convert';
-      const body = mode === 'compress' ? { pathname: blob.pathname, filename: file.name, level, target } : { pathname: blob.pathname, filename: file.name, conversionId: tool.id };
+      const body = mode === 'compress'
+        ? { pathname: inputPathname, filename: file.name, level, target }
+        : { pathname: inputPathname, filename: file.name, conversionId: tool.id };
       const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal });
       const responseBody = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof responseBody.error === 'string' ? responseBody.error : 'The job failed. Please try again.');
