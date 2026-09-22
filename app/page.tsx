@@ -107,16 +107,16 @@ export default function Home() {
 
   async function runJob() {
     if (!file || busy) return;
-    const supabase = createSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setError(true);
-      setMessage('Please log in before uploading a file.');
-      return;
-    }
-    clearResult(); setBusy(true); setPhase('uploading'); setError(false); setProgress(0); setMessage(mode === 'compress' ? 'Uploading your PDF securely…' : `Uploading your file for ${tool.label}…`);
-    const controller = new AbortController(); requestRef.current = controller;
     try {
+      const supabase = createSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError(true);
+        setMessage('Please log in before uploading a file.');
+        return;
+      }
+      clearResult(); setBusy(true); setPhase('uploading'); setError(false); setProgress(0); setMessage(mode === 'compress' ? 'Uploading your PDF securely…' : `Uploading your file for ${tool.label}…`);
+      const controller = new AbortController(); requestRef.current = controller;
       const extension = `.${file.name.split('.').pop()?.toLowerCase() || ''}`;
       const uploadId = crypto.randomUUID();
       const uploadPathname = `fileforge/${user.id}/${uploadId}/input${extension}`;
