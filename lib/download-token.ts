@@ -1,8 +1,18 @@
 import crypto from 'node:crypto';
 
 function secret() {
-  const value = process.env.DOWNLOAD_SIGNING_SECRET;
-  if (!value || value.length < 32) throw new Error('DOWNLOAD_SIGNING_SECRET is not configured.');
+  // Prefer the dedicated signing secret. For one-click deployments, fall back
+  // to a private server secret already required by the app.
+  const value =
+    process.env.DOWNLOAD_SIGNING_SECRET ||
+    process.env.BLOB_READ_WRITE_TOKEN ||
+    process.env.SUPABASE_SECRET_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    '';
+
+  if (value.length < 32) {
+    throw new Error('A server-side signing secret is not configured.');
+  }
   return value;
 }
 
