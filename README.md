@@ -6,20 +6,21 @@ FileForge is a single-deployment Next.js file utility site with PDF compression,
 
 - PDF → Word, Excel, PowerPoint, JPG, PNG
 - Word/Excel/PowerPoint → PDF
+- Word ↔ PowerPoint (page-preserving where editable layout cannot be guaranteed)
 - JPG/PNG → PDF
 - JPG/PNG/WebP/HEIC/HEIF image conversions
 - Excel ↔ CSV
 
 ## Deployment
 
-This project is designed for Vercel's `Dockerfile.vercel` container deployment so Ghostscript, LibreOffice, Poppler, ImageMagick, libheif, Python and zip are packaged with the application.
+This project uses Vercel's `Dockerfile.vercel` container deployment so Ghostscript, LibreOffice, Poppler, ImageMagick, libheif, Python, fonts and zip are packaged with the application. Vercel detects the root `Dockerfile.vercel` and deploys the container as a Vercel Function.
 
 1. Import the repository into Vercel.
 2. Connect a private Vercel Blob store.
 3. Run `supabase/schema.sql` in Supabase.
 4. Add the variables listed in `.env.example`.
 5. Configure the Stripe webhook as `/api/stripe/webhook`.
-6. Deploy.
+6. Deploy from Vercel (or connect GitHub for automatic redeploys).
 
 Large uploads are sent directly from the browser to private Vercel Blob storage. They do not pass through a normal Function request body. Downloads are streamed back through an authenticated same-origin route so Office, image, PDF and ZIP files receive explicit attachment headers.
 

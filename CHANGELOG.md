@@ -1,3 +1,17 @@
+## 2026-09-22 — V12 complete reliability + UI pass
+
+- Refreshed the entire visual system with a colorful purple/magenta/cyan theme, glass cards, stronger hierarchy, responsive states, polished buttons and mobile spacing.
+- Added a branded App Router favicon (`app/icon.svg`).
+- Added Word → PowerPoint and PowerPoint → Word conversion paths through LibreOffice + the existing PDF/Office bridge, with honest page-preserving/editability descriptions in the UI.
+- Added generated Office-file validation: DOCX/PPTX outputs are unzipped and round-tripped through LibreOffice before success is returned.
+- Made ImageMagick command detection runtime-safe (`magick`/`convert`) instead of relying on a build-time availability probe.
+- Hardened the single-deployment Vercel container with deterministic locale/fonts, explicit port/host defaults and a smaller Docker build context via `.dockerignore`.
+- Added friendly App Router 404/error pages.
+- Expanded the converter selector to expose the complete conversion catalog instead of truncating the UI to a subset.
+- Added clearer Office ↔ Office fidelity messaging so users are not promised fully editable layout when the source format cannot guarantee it.
+- Verified Python syntax, TypeScript/TSX parser diagnostics, converter catalog uniqueness and native conversion smoke tests in the available environment.
+- Full `pnpm install` / production Docker build could not be executed in this environment because registry/network access and the Docker CLI are unavailable; deployment still requires Vercel to perform the real dependency install/build.
+
 
 ## 2026-09-18 — Conversion/download reliability patch
 - Added authenticated same-origin `/api/download` streaming for converted and compressed files.

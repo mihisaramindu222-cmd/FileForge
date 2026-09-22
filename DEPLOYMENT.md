@@ -18,9 +18,13 @@ Set these in Vercel before deploying:
 
 Run the current `supabase/schema.sql` in the Supabase SQL editor. It adds the shared rate-limit table/function and billing-event user linkage in addition to the existing FileForge tables/functions.
 
+## Vercel container deployment
+
+Keep `Dockerfile.vercel` at the repository root. Vercel now supports root Dockerfile deployments as containerized Functions, which is why the native conversion tools can stay in the same deployment. The container exposes port 3000 and the runtime environment can override `PORT` when required.
+
 ## Vercel Hobby plan
 
-The cleanup cron is configured once daily (`0 3 * * *`) so it is compatible with Hobby cron limits. It removes temporary blobs older than one hour.
+The cleanup cron is configured once daily (`0 3 * * *`) so it is compatible with Hobby cron limits. It removes temporary blobs older than one hour. Conversion and compression routes are capped at 300 seconds; Vercel's current Hobby maximum with Fluid compute is 300 seconds.
 
 ## File size
 

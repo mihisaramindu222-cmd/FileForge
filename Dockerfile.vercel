@@ -24,9 +24,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 ghostscript poppler-utils libreoffice-writer libreoffice-calc libreoffice-impress imagemagick libheif1 libheif-examples zip unzip ca-certificates \
+  && apt-get install -y --no-install-recommends python3 ghostscript poppler-utils libreoffice-writer libreoffice-calc libreoffice-impress imagemagick fonts-liberation fonts-dejavu fontconfig libheif1 libheif-examples zip unzip ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/public ./public
@@ -34,4 +37,5 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/scripts ./scripts
 
+EXPOSE 3000
 CMD ["node", "server.js"]
