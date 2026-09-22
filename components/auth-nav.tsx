@@ -8,19 +8,39 @@ export default function AuthNav() {
 
   useEffect(() => {
     let active = true;
-    const supabase = createClient();
+    let supabase: ReturnType<typeof createClient>;
+
+    try {
+      supabase = createClient();
+    } catch (error) {
+      console.error('Supabase client is not configured for the public site.', error);
+      return;
+    }
+
     supabase.auth.getUser().then(({ data }) => {
       if (active) setEmail(data.user?.email ?? null);
+    }).catch((error) => {
+      console.error('Could not load the current auth session.', error);
     });
+
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setEmail(session?.user?.email ?? null);
+      if (active) setEmail(session?.user?.email ?? null);
     });
-    return () => { active = false; sub.subscription.unsubscribe(); };
+
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   async function logout() {
-    await createClient().auth.signOut();
-    window.location.href = '/';
+    try {
+      await createClient().auth.signOut();
+    } catch (error) {
+      console.error('Could not sign out.', error);
+    } finally {
+      window.location.href = '/';
+    }
   }
 
   return email ? (
