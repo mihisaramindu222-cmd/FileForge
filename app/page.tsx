@@ -3,6 +3,7 @@
 import { upload } from '@vercel/blob/client';
 import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from 'react';
 import AuthNav from '@/components/auth-nav';
+import { createClient as createSupabaseClient } from '@/lib/supabase/client';
 import AdSlot from '@/components/ad-slot';
 import { CONVERSIONS } from '@/lib/converters/catalog';
 
@@ -106,6 +107,13 @@ export default function Home() {
 
   async function runJob() {
     if (!file || busy) return;
+    const supabase = createSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setError(true);
+      setMessage('Please log in before uploading a file.');
+      return;
+    }
     clearResult(); setBusy(true); setPhase('uploading'); setError(false); setProgress(0); setMessage(mode === 'compress' ? 'Uploading your PDF securely…' : `Uploading your file for ${tool.label}…`);
     const controller = new AbortController(); requestRef.current = controller;
     try {
@@ -139,7 +147,17 @@ export default function Home() {
       setResult({ downloadUrl: String(responseBody.downloadUrl), inputBytes, outputBytes, outputFilename: String(responseBody.outputFilename || `${file.name}-output`), conversion: String(responseBody.conversion || 'PDF Compressor'), expiresAt });
       setProgress(100); setMessage(mode === 'compress' ? 'Your compressed PDF is ready.' : `${tool.label} is ready to download.`);
     } catch (caught) {
-      setError(true); setMessage(caught instanceof DOMException && caught.name === 'AbortError' ? 'Upload cancelled. Your original file is unchanged.' : caught instanceof Error ? caught.message : 'The job failed. Please try again.');
+      const errorMessage = caught instanceof DOMException && caught.name === 'AbortError'
+        ? 'Upload cancelled. Your original file is unchanged.'
+        : caught instanceof Error
+          ? caught.message
+          : 'The job failed. Please try again.';
+      setError(true);
+      setMessage(
+        errorMessage.includes('Failed to retrieve the client token')
+          ? 'File upload service is not connected correctly. Please check the Vercel Blob store configuration.'
+          : errorMessage
+      );
     } finally {
       requestRef.current = null; setBusy(false); setPhase('idle');
     }
