@@ -87,13 +87,14 @@ export async function POST(request: Request): Promise<NextResponse> {
         }
 
         let filename = 'document.pdf';
+        let requestedPathname = '';
         try {
           const payload = JSON.parse(clientPayload || '{}') as {
             filename?: unknown;
             pathname?: unknown;
           };
           filename = cleanFilename(payload.filename);
-          const requestedPathname =
+          requestedPathname =
             typeof payload.pathname === 'string' ? payload.pathname : '';
         } catch {
           // Fall back to the safe default filename.
