@@ -2,7 +2,17 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fileforge.example';
+function getSiteUrl() {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured) return configured.replace(/\/$/, '');
+  const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+  if (productionHost) {
+    return `https://${productionHost.replace(/^https?:\/\//, '').replace(/\/$/, '')}`;
+  }
+  return 'http://localhost:3000';
+}
+
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -15,7 +25,7 @@ export const metadata: Metadata = {
     title: 'FileForge — PDF Compressor & File Converter',
     description: 'Compress PDFs and convert common file formats online with private temporary processing.',
     type: 'website',
-    url: '/',
+    url: siteUrl,
     siteName: 'FileForge',
   },
   twitter: {
@@ -35,5 +45,18 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const adsClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
-  return <html lang="en"><body>{children}{adsClient && <Script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsClient}`} crossOrigin="anonymous" />}</body></html>;
+  return (
+    <html lang="en">
+      <body>
+        {children}
+        {adsClient && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsClient}`}
+            crossOrigin="anonymous"
+          />
+        )}
+      </body>
+    </html>
+  );
 }
