@@ -50,10 +50,16 @@ export async function POST(request: Request): Promise<NextResponse> {
 
         let filename = 'document';
         let conversionId = '';
+        let requestedPathname = '';
         try {
-          const payload = JSON.parse(clientPayload || '{}') as { filename?: unknown; conversionId?: unknown };
+          const payload = JSON.parse(clientPayload || '{}') as {
+            filename?: unknown;
+            conversionId?: unknown;
+            pathname?: unknown;
+          };
           filename = cleanFilename(payload.filename);
           conversionId = typeof payload.conversionId === 'string' ? payload.conversionId : '';
+          requestedPathname = typeof payload.pathname === 'string' ? payload.pathname : '';
         } catch {
           throw new Error('Invalid converter upload metadata.');
         }
@@ -80,8 +86,18 @@ export async function POST(request: Request): Promise<NextResponse> {
           '.heif': ['image/heif'],
         };
 
+        const parts = requestedPathname.split('/');
+        const validPathname =
+          parts.length === 4 &&
+          parts[0] === 'fileforge' &&
+          parts[1] === user.id &&
+          /^[0-9a-f-]{36}$/i.test(parts[2]) &&
+          parts[3] === `input${extension}`;
+
+        if (!validPathname) throw new Error('Invalid upload path.');
+
         return {
-          pathname: `fileforge/${user.id}/${crypto.randomUUID()}/input${extension}`,
+          pathname: requestedPathname,
           allowedContentTypes: contentTypesByExtension[extension] ?? ALLOWED_CONTENT_TYPES,
           maximumSizeInBytes: MAX_UPLOAD_BYTES,
           validUntil: Date.now() + 60 * 60 * 1000,
