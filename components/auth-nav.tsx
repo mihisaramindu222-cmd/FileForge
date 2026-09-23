@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 
 export default function AuthNav() {
   const [email, setEmail] = useState<string | null>(null);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -18,13 +19,19 @@ export default function AuthNav() {
     }
 
     supabase.auth.getUser().then(({ data }) => {
-      if (active) setEmail(data.user?.email ?? null);
+      if (active) {
+        setEmail(data.user?.email ?? null);
+        setIsAnonymous(Boolean(data.user?.is_anonymous));
+      }
     }).catch((error) => {
       console.error('Could not load the current auth session.', error);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (active) setEmail(session?.user?.email ?? null);
+      if (active) {
+        setEmail(session?.user?.email ?? null);
+        setIsAnonymous(Boolean(session?.user?.is_anonymous));
+      }
     });
 
     return () => {
@@ -47,6 +54,11 @@ export default function AuthNav() {
     <div className="nav-user">
       <a href="/account">Account</a>
       <button className="nav-link-button" onClick={logout} type="button">Log out</button>
+    </div>
+  ) : isAnonymous ? (
+    <div className="nav-user">
+      <span className="nav-guest">Guest</span>
+      <a className="nav-cta" href="/login">Log in</a>
     </div>
   ) : (
     <div className="nav-user">
