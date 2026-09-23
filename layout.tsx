@@ -2,7 +2,21 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fileforge.example';
+const FALLBACK_SITE_URL = 'https://fileforge-final-deploy.vercel.app';
+
+function getSiteUrl() {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (configured && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/i.test(configured) && !/\.example(?:\.com)?\/?$/i.test(configured)) {
+    return configured.replace(/\/$/, '');
+  }
+  const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+  if (productionHost && !/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(productionHost)) {
+    return `https://${productionHost.replace(/^https?:\/\//, '').replace(/\/$/, '')}`;
+  }
+  return FALLBACK_SITE_URL;
+}
+
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -15,7 +29,7 @@ export const metadata: Metadata = {
     title: 'FileForge — PDF Compressor & File Converter',
     description: 'Compress PDFs and convert common file formats online with private temporary processing.',
     type: 'website',
-    url: '/',
+    url: siteUrl,
     siteName: 'FileForge',
   },
   twitter: {
