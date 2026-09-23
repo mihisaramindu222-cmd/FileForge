@@ -62,7 +62,6 @@ export default function AuthNav() {
     </div>
   ) : (
     <div className="nav-user">
-      <a href="/pricing">Plans</a>
       <a className="nav-cta" href="/login">Log in</a>
     </div>
   );
