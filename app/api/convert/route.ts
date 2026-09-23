@@ -58,12 +58,9 @@ export async function POST(request: Request) {
     }
 
     const start = await supabase.rpc('start_compression_job');
-    if (start.error) return NextResponse.json({ error: 'Could not check your usage limit.' }, { status: 500 });
-    if (!start.data?.allowed) {
-      const message = start.data?.reason === 'busy'
-        ? 'A FileForge job is already running for your account. Please wait for it to finish.'
-        : 'Free accounts are limited to 3 successful jobs per day. Upgrade to Pro for higher usage.';
-      return NextResponse.json({ error: message }, { status: start.data?.reason === 'busy' ? 409 : 402 });
+    if (start.error) return NextResponse.json({ error: 'Could not start your conversion job.' }, { status: 500 });
+    if (start.data?.reason === 'busy') {
+      return NextResponse.json({ error: 'A FileForge job is already running for your account. Please wait for it to finish.' }, { status: 409 });
     }
     jobStarted = true;
 
@@ -105,7 +102,7 @@ export async function POST(request: Request) {
       await del(inputPathname).catch(() => undefined);
       try { await (await createClient()).rpc('release_compression_job'); } catch { /* best-effort cleanup */ }
       jobStarted = false;
-      return NextResponse.json({ error: finish.error ? 'Could not record your FileForge usage.' : 'Your daily usage limit has been reached.' }, { status: 402 });
+      return NextResponse.json({ error: 'Could not record your FileForge job. Please try again.' }, { status: 500 });
     }
     jobStarted = false;
     await del(inputPathname).catch(() => undefined);
