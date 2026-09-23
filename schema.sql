@@ -66,6 +66,54 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
 
+-- Admin dashboard data. Access is limited to authenticated users whose own profile role is admin.
+create or replace function public.get_admin_dashboard()
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  uid uuid := auth.uid();
+  user_role text;
+  total_users bigint := 0;
+  usage_rows jsonb := '[]'::jsonb;
+begin
+  if uid is null then raise exception 'Not authenticated'; end if;
+
+  select role into user_role from public.profiles where id = uid;
+  if user_role <> 'admin' then raise exception 'Not authorized'; end if;
+
+  select count(*) into total_users from public.profiles;
+
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object('usage_date', usage_date, 'count', count)
+      order by usage_date desc
+    ),
+    '[]'::jsonb
+  )
+  into usage_rows
+  from (
+    select usage_date, sum(count)::bigint as count
+    from public.usage_daily
+    group by usage_date
+    order by usage_date desc
+    limit 14
+  ) daily;
+
+  return jsonb_build_object(
+    'total_users', total_users,
+    'recent_usage', usage_rows
+  );
+end;
+$;
+
+revoke all on function public.get_admin_dashboard() from public;
+revoke all on function public.get_admin_dashboard() from anon;
+revoke all on function public.get_admin_dashboard() from authenticated;
+grant execute on function public.get_admin_dashboard() to authenticated, service_role;
+
 -- One-time admin setup example (replace the email and run once after signup):
 -- update public.profiles set role = 'admin' where email = 'you@example.com';
 
