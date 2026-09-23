@@ -4,7 +4,6 @@ import { upload } from '@vercel/blob/client';
 import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from 'react';
 import AuthNav from '@/components/auth-nav';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client';
-import AdSlot from '@/components/ad-slot';
 import { CONVERSIONS } from '@/lib/converters/catalog';
 
 const MAX_UPLOAD_MB = 500;
@@ -183,7 +182,7 @@ export default function Home() {
   return <main>
     <header className="site-header"><div className="shell nav-inner"><a className="brand" href="#top" aria-label="FileForge home"><span className="brand-mark">F</span><span>FileForge</span></a><nav aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#tools">Converters</a><a href="#faq">FAQ</a><AuthNav /></nav></div></header>
 
-    <section id="top" className="hero shell"><div className="eyebrow">✦ Private file tools in one place</div><h1>Compress, convert,<br /><span>then download.</span></h1><p className="hero-copy">PDF compression plus practical PDF, Office, image and spreadsheet converters in one simple workspace.</p><div className="trust-row"><span>🔒 Private temporary files</span><span>⚡ Up to 500 MB</span><span>📥 Short-lived downloads</span></div><AdSlot className="hero-ad" hideForPro /></section>
+    <section id="top" className="hero shell"><div className="eyebrow">✦ Private file tools in one place</div><h1>Compress, convert,<br /><span>then download.</span></h1><p className="hero-copy">PDF compression plus practical PDF, Office, image and spreadsheet converters in one simple workspace.</p><div className="trust-row"><span>🔒 Private temporary files</span><span>⚡ Up to 500 MB</span><span>📥 Short-lived downloads</span></div></section>
 
     <section id="tools" className="shell workspace" aria-labelledby="workspace-heading">
       <div className="mode-tabs" role="tablist" aria-label="FileForge tools">
@@ -216,7 +215,7 @@ export default function Home() {
 
     <section id="faq" className="shell faq-section"><div className="section-head"><span className="section-kicker">FAQ</span><h2>Common questions</h2></div><div className="faq-list"><details open><summary>What is the maximum file size?</summary><p>500 MB for FileForge uploads. Large conversions can take longer, and actual processing time depends on the Vercel plan and the complexity of the source file.</p></details><details><summary>Does FileForge permanently store my files?</summary><p>Input files are deleted after processing. Output files are private and accessed with short-lived signed download links.</p></details><details><summary>Will PDF → Word preserve the exact layout?</summary><p>Text-based PDFs are converted into editable DOCX text. Scanned PDFs fall back to page images, which preserves appearance but is not the same as OCR.</p></details><details><summary>Will PDF → Excel detect tables perfectly?</summary><p>FileForge uses PDF text positioning to create rows and columns. Complex or scanned tables may need manual cleanup after conversion.</p></details></div></section>
 
-    <section className="shell pricing-callout"><div><span className="section-kicker">Free forever</span><h2>All FileForge tools are free.</h2><p>Create a free account and use compression and file conversion with up to 500 MB uploads and 3 successful jobs per day.</p></div><a className="primary inline-cta" href="/pricing">See free plan</a></section>
+    <section className="shell pricing-callout"><div><span className="section-kicker">Free forever</span><h2>All FileForge tools are free.</h2><p>Create a free account and use all compression and file conversion tools with up to 500 MB uploads and unlimited daily jobs.</p></div><a className="primary inline-cta" href="/pricing">See free plan</a></section>
     <footer className="site-footer"><div className="shell footer-inner"><span>© {new Date().getFullYear()} FileForge</span><span>Private PDF compression and practical file conversion.</span><span><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a></span></div></footer>
   </main>;
 }
