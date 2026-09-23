@@ -50,7 +50,7 @@ create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 begin
   insert into public.profiles (id, email) values (new.id, new.email)
@@ -84,7 +84,7 @@ create or replace function public.check_rate_limit(p_bucket text, p_max_requests
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   current_count integer;
@@ -93,7 +93,7 @@ begin
   if p_max_requests < 1 or p_window_seconds < 1 then
     return jsonb_build_object('allowed', false);
   end if;
-  perform pg_advisory_xact_lock(hashtextextended(p_bucket, 0));
+  perform pg_advisory_xact_lock(pg_catalog.hashtextextended(p_bucket, 0));
   select request_count, window_started_at into current_count, started from public.rate_limit_buckets where bucket = p_bucket for update;
   if started is null or started <= now() - make_interval(secs => p_window_seconds) then
     insert into public.rate_limit_buckets(bucket, window_started_at, request_count) values (p_bucket, now(), 1)
@@ -122,7 +122,7 @@ create or replace function public.start_compression_job()
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   uid uuid := auth.uid();
@@ -134,7 +134,7 @@ begin
   select plan into user_plan from public.profiles where id = uid;
   if user_plan is null then raise exception 'Profile not found'; end if;
 
-  perform pg_advisory_xact_lock(hashtextextended(uid::text, 0));
+  perform pg_advisory_xact_lock(pg_catalog.hashtextextended(uid::text, 0));
 
   select started_at into existing_started_at
   from public.active_compression_jobs
@@ -171,7 +171,7 @@ create or replace function public.finish_compression_job()
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   uid uuid := auth.uid();
@@ -216,7 +216,7 @@ create or replace function public.release_compression_job()
 returns void
 language sql
 security definer
-set search_path = public
+set search_path = ''
 as $$
   delete from public.active_compression_jobs where user_id = auth.uid();
 $$;
