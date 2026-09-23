@@ -14,7 +14,7 @@ export default async function AccountPage() {
   return (
     <main className="dashboard-page">
       <div className="dashboard shell">
-        <div className="dashboard-top"><a className="brand" href="/">FileForge</a><AccountActions /></div>
+        <div className="dashboard-top"><div className="dashboard-nav-left"><a className="brand" href="/" aria-label="FileForge home"><span className="brand-mark">F</span><span>FileForge</span></a><a className="back-link dashboard-back" href="/">← Back to FileForge</a></div><AccountActions /></div>
         <div className="dashboard-hero"><span className="section-kicker">Your account</span><h1>Hello{user.email ? `, ${user.email}` : ''}.</h1><p>Manage your plan and billing from one place.</p></div>
         <div className="stats-grid">
           <div className="stat-card"><span>Plan</span><strong>{plan}</strong><small>{plan === 'Free' ? '3 jobs per day' : 'Premium access'}</small></div>
