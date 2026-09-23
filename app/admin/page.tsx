@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,8 @@ export default async function AdminPage() {
 
   if (me?.role !== 'admin') redirect('/account');
 
-  const { data, error } = await supabase.rpc('get_admin_dashboard');
+  const adminClient = createAdminClient();
+  const { data, error } = await adminClient.rpc('get_admin_dashboard', { p_user_id: user.id });
   if (error) {
     console.error('Could not load admin dashboard.', error);
     throw new Error('Could not load the admin dashboard.');
