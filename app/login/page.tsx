@@ -30,6 +30,11 @@ export default function LoginPage() {
       const requestedNext = new URLSearchParams(window.location.search).get('next');
       const next = requestedNext?.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/account';
       const supabase = createClient();
+      const { data: currentUserData } = await supabase.auth.getUser();
+      if (currentUserData.user?.is_anonymous) {
+        const { error: signOutError } = await supabase.auth.signOut();
+        if (signOutError) throw signOutError;
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
