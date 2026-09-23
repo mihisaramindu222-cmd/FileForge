@@ -176,3 +176,16 @@ body{
 .system-card{width:min(620px,calc(100% - 20px));padding:38px;border-radius:26px;border:1px solid #e3d9f1;background:rgba(255,255,255,.9);box-shadow:0 30px 100px rgba(76,29,149,.14);text-align:center;backdrop-filter:blur(12px)}
 .system-card .brand-mark{margin:0 auto 22px}.system-card h1{font-size:clamp(34px,6vw,54px);line-height:1;letter-spacing:-.06em;margin:8px 0 14px}.system-card p{max-width:470px;margin:0 auto 24px;color:var(--muted)}.system-actions{justify-content:center;margin-top:2px}.system-actions .primary{margin:0}.system-actions .secondary{margin:0}
 @media(max-width:520px){.system-card{padding:28px 20px}.system-actions{display:grid}.system-actions .inline-cta{width:100%!important}}
+
+
+.dashboard-nav-left{display:flex;align-items:center;gap:18px;min-width:0}
+.dashboard-back{margin:0;color:#6d28d9;font-size:13px}
+.auth-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:28px}
+.auth-top .auth-brand{margin-bottom:0}
+.auth-home-link{font-size:13px;font-weight:800;color:#6d28d9;white-space:nowrap}
+.auth-home-link:hover,.dashboard-back:hover{text-decoration:underline}
+@media(max-width:560px){
+  .dashboard-nav-left{gap:10px;flex-wrap:wrap}
+  .dashboard-back{order:2;width:100%}
+  .auth-top{align-items:flex-start}
+}
