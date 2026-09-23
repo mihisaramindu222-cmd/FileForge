@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { compressPdf, ConverterError, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB, parseLevel, parseTarget, type InputStreamFactory } from '@/lib/converters';
 import { signDownload } from '@/lib/download-token';
 
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: 'Please log in to compress a PDF.' }, { status: 401 });
     userId = user.id;
 
+    const admin = createAdminClient();
     const body = await request.json() as { pathname?: unknown; filename?: unknown; level?: unknown; target?: unknown };
     inputPathname = typeof body.pathname === 'string' ? body.pathname : '';
     if (!inputPathname || !isOwnedPath(inputPathname, user.id)) {
@@ -55,7 +57,7 @@ export async function POST(request: Request) {
     const target = parseTarget(typeof body.target === 'string' ? body.target : null);
     const originalFilename = typeof body.filename === 'string' ? body.filename : 'document.pdf';
 
-    const { data: startJob, error: startError } = await supabase.rpc('start_compression_job');
+    const { data: startJob, error: startError } = await admin.rpc('start_compression_job', { p_user_id: user.id });
     if (startError) return NextResponse.json({ error: 'Could not check your compression limit.' }, { status: 500 });
     if (!startJob?.allowed) {
       const message = startJob?.reason === 'busy'
@@ -105,11 +107,11 @@ export async function POST(request: Request) {
     const downloadSignature = signDownload(outputBlob.pathname, downloadFilename, downloadExpiresAt);
     const downloadUrl = `/api/download?pathname=${encodeURIComponent(outputBlob.pathname)}&filename=${encodeURIComponent(downloadFilename)}&expires=${downloadExpiresAt}&sig=${encodeURIComponent(downloadSignature)}`;
 
-    const { data: finishJob, error: finishError } = await supabase.rpc('finish_compression_job');
+    const { data: finishJob, error: finishError } = await admin.rpc('finish_compression_job', { p_user_id: user.id });
     if (finishError) {
       await del(outputBlob.pathname);
       try { await del(inputPathname); } catch { /* best-effort cleanup */ }
-      try { const cleanup = await createClient(); await cleanup.rpc('release_compression_job'); } catch { /* best effort */ }
+      try { const cleanup = await createClient(); await createAdminClient().rpc('release_compression_job', { p_user_id: user.id }); } catch { /* best effort */ }
       jobStarted = false;
       return NextResponse.json({ error: 'Could not record your compression usage.' }, { status: 500 });
     }
@@ -142,7 +144,7 @@ export async function POST(request: Request) {
     if (userId && jobStarted) {
       try {
         const supabase = await createClient();
-        await supabase.rpc('release_compression_job');
+        await createAdminClient().rpc('release_compression_job', { p_user_id: user.id });
       } catch {
         // Expiring DB locks prevent a failed request from blocking a user forever.
       }
