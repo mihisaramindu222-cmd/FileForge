@@ -118,7 +118,134 @@ create table if not exists public.active_compression_jobs (
 
 enable row level security on public.active_compression_jobs;
 
+create or replace function public.start_compression_job()
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := auth.uid();
+  existing_started_at timestamptz;
+  user_plan text;
+begin
+  if uid is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  select plan into user_plan
+    from public.profiles
+   where id = uid;
+
+  if user_plan is null then
+    raise exception 'Profile not found';
+  end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(uid::text, 0)
+  );
+
+  select started_at into existing_started_at
+    from public.active_compression_jobs
+   where user_id = uid
+   for update;
+
+  if existing_started_at is not null
+     and existing_started_at > now() - interval '20 minutes' then
+    return jsonb_build_object('allowed', false, 'reason', 'busy');
+  end if;
+
+  insert into public.active_compression_jobs (user_id, started_at)
+  values (uid, now())
+  on conflict (user_id) do update
+    set started_at = excluded.started_at;
+
+  return jsonb_build_object(
+    'allowed', true,
+    'plan', user_plan,
+    'remaining', -1,
+    'limit', 0
+  );
+end;
+$$;
+
+create or replace function public.finish_compression_job()
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := auth.uid();
+  user_plan text;
+  used_count integer := 0;
+begin
+  if uid is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  if not exists (
+    select 1
+      from public.active_compression_jobs
+     where user_id = uid
+  ) then
+    raise exception 'No active compression job';
+  end if;
+
+  select plan into user_plan
+    from public.profiles
+   where id = uid;
+
+  if user_plan is null then
+    raise exception 'Profile not found';
+  end if;
+
+  insert into public.usage_daily (user_id, usage_date, count)
+  values (uid, current_date, 0)
+  on conflict (user_id, usage_date) do nothing;
+
+  select count into used_count
+    from public.usage_daily
+   where user_id = uid
+     and usage_date = current_date
+   for update;
+
+  update public.usage_daily
+     set count = count + 1
+   where user_id = uid
+     and usage_date = current_date;
+
+  delete from public.active_compression_jobs
+   where user_id = uid;
+
+  return jsonb_build_object(
+    'allowed', true,
+    'plan', user_plan,
+    'remaining', -1,
+    'limit', 0,
+    'used_today', used_count + 1
+  );
+end;
+$$;
+
+create or replace function public.release_compression_job()
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  delete from public.active_compression_jobs
+   where user_id = auth.uid();
+$$;
+
 drop function if exists public.start_compression_job(uuid);
+drop function if exists public.finish_compression_job(uuid);
+drop function if exists public.release_compression_job(uuid);
+
+revoke all on function public.start_compression_job() from public;
+revoke all on function public.start_compression_job() from anon;
+revoke all on function public.start_compression_job() from authenticated;
+grant execute on function public.start_compression_job() to authenticated, service_role;
 
 revoke all on function public.finish_compression_job() from public;
 revoke all on function public.finish_compression_job() from anon;
