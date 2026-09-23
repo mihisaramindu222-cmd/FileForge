@@ -108,11 +108,15 @@ export default function Home() {
     if (!file || busy) return;
     try {
       const supabase = createSupabaseClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      let { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        setError(true);
-        setMessage('Please log in before uploading a file.');
-        return;
+        const { data: anonymous, error: anonymousError } = await supabase.auth.signInAnonymously();
+        if (anonymousError || !anonymous.user) {
+          setError(true);
+          setMessage('FileForge could not start a temporary session. Please try again.');
+          return;
+        }
+        user = anonymous.user;
       }
       clearResult(); setBusy(true); setPhase('uploading'); setError(false); setProgress(0); setMessage(mode === 'compress' ? 'Uploading your PDF securely…' : `Uploading your file for ${tool.label}…`);
       const controller = new AbortController(); requestRef.current = controller;
@@ -205,7 +209,7 @@ export default function Home() {
         {busy && <div className="progress-track" role="progressbar" aria-label="Processing progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><span style={{ width: `${progress}%` }} /></div>}
         {message && <div className={`result ${error ? 'error' : ''}`} role="status" aria-live="polite"><span className="result-icon">{error ? '!' : '✓'}</span><div><strong>{message}</strong>{result && <span>{formatBytes(result.inputBytes)} → {formatBytes(result.outputBytes)}{mode === 'compress' ? ` · ${saved > 0 ? `${formatBytes(saved)} saved (${percent.toFixed(1)}%)` : 'No size reduction was possible.'}` : ` · ${result.conversion}`}</span>}</div></div>}
         {result && <div className="result-actions">{downloadExpired ? <button type="button" className="secondary" onClick={() => { clearResult(); setMessage('The download link expired. Start another job to create a fresh link.'); setError(true); }}>Download link expired — start another</button> : <a className="primary inline-cta" href={result.downloadUrl} download={result.outputFilename} target="_blank" rel="noopener noreferrer">Download {mode === 'compress' ? 'compressed PDF' : result.outputFilename}</a>}<button type="button" className="secondary" onClick={resetWorkspace}>Start another</button></div>}
-        <p className="privacy">Free accounts get 3 successful jobs per day. Input files are deleted after processing; results use a short-lived private download link. Office ↔ Office conversions are page-preserving where editable layout cannot be guaranteed.</p>
+        <p className="privacy">No signup is required to use FileForge. Input files are deleted after processing; results use a short-lived private download link. Create an account only when you want a persistent login.</p>
       </div>
     </section>
 
