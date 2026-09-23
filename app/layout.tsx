@@ -2,14 +2,18 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 
+const FALLBACK_SITE_URL = 'https://fileforge-final-deploy.vercel.app';
+
 function getSiteUrl() {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (configured) return configured.replace(/\/$/, '');
+  if (configured && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/i.test(configured) && !/\.example(?:\.com)?\/?$/i.test(configured)) {
+    return configured.replace(/\/$/, '');
+  }
   const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
-  if (productionHost) {
+  if (productionHost && !/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(productionHost)) {
     return `https://${productionHost.replace(/^https?:\/\//, '').replace(/\/$/, '')}`;
   }
-  return 'http://localhost:3000';
+  return FALLBACK_SITE_URL;
 }
 
 const siteUrl = getSiteUrl();
