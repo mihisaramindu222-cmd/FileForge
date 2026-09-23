@@ -60,7 +60,7 @@ export default function LoginPage() {
         <p>{mode === 'login' ? 'Track your plan and manage your subscription.' : 'Get 3 free compression jobs every day. Use a password of at least 12 characters.'}</p>
         <form onSubmit={submit} className="auth-form">
           <label>Email<input required type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" /></label>
-          <label>Password<input required minLength={12} type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /></label>
+          <label>Password<input required minLength={mode === 'signup' ? 12 : undefined} type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /></label>
           <button className="primary" disabled={busy} type="submit">{busy ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'}</button>
           {mode === 'login' && <button className="switch-button" type="button" disabled={busy} onClick={requestReset}>Forgot password?</button>}
         </form>
