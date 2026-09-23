@@ -56,12 +56,9 @@ export async function POST(request: Request) {
     const originalFilename = typeof body.filename === 'string' ? body.filename : 'document.pdf';
 
     const { data: startJob, error: startError } = await supabase.rpc('start_compression_job');
-    if (startError) return NextResponse.json({ error: 'Could not check your compression limit.' }, { status: 500 });
-    if (!startJob?.allowed) {
-      const message = startJob?.reason === 'busy'
-        ? 'A compression job is already running for your account. Please wait for it to finish.'
-        : 'Free accounts are limited to 3 successful jobs per day. Upgrade to Pro for higher usage.';
-      return NextResponse.json({ error: message }, { status: startJob?.reason === 'busy' ? 409 : 402 });
+    if (startError) return NextResponse.json({ error: 'Could not start your compression job.' }, { status: 500 });
+    if (startJob?.reason === 'busy') {
+      return NextResponse.json({ error: 'A compression job is already running for your account. Please wait for it to finish.' }, { status: 409 });
     }
     jobStarted = true;
 
@@ -117,7 +114,7 @@ export async function POST(request: Request) {
       await del(outputBlob.pathname);
       await del(inputPathname);
       jobStarted = false;
-      return NextResponse.json({ error: 'Your daily compression limit has been reached.' }, { status: 402 });
+      return NextResponse.json({ error: 'The compression job could not be recorded. Please try again.' }, { status: 500 });
     }
     jobStarted = false;
 
