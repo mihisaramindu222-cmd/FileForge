@@ -57,7 +57,7 @@ export default function LoginPage() {
         <div className="auth-top"><a className="brand auth-brand" href="/"><span className="brand-mark">F</span><span>FileForge</span></a><a className="auth-home-link" href="/">← Home</a></div>
         <span className="section-kicker">{mode === 'login' ? 'Welcome back' : 'Create your account'}</span>
         <h1>{mode === 'login' ? 'Log in to FileForge' : 'Start with FileForge'}</h1>
-        <p>{mode === 'login' ? 'Track your plan and manage your subscription.' : 'Get 3 free compression jobs every day. Use a password of at least 12 characters.'}</p>
+        <p>{mode === 'login' ? 'Sign in only when you want a persistent account. FileForge tools work without signup.' : 'Get 3 free compression jobs every day. Use a password of at least 12 characters.'}</p>
         <form onSubmit={submit} className="auth-form">
           <label>Email<input required type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" /></label>
           <label>Password<input required minLength={mode === 'signup' ? 12 : undefined} type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /></label>
