@@ -189,3 +189,6 @@ body{
   .dashboard-back{order:2;width:100%}
   .auth-top{align-items:flex-start}
 }
+
+.no-account-note{color:#7c3aed!important;font-weight:800!important;font-size:11px!important;margin-top:2px}
+.nav-guest{font-size:12px;font-weight:800;color:#6b6680;padding:6px 0}
