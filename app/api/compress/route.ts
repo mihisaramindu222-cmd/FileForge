@@ -13,7 +13,7 @@ import { allowSharedRateLimit } from '@/lib/rate-limit';
 
 function safeFilename(value: unknown) {
   const raw = typeof value === 'string' ? value : 'download';
-  const cleaned = raw.replace(/[\\/\r\n"<>|:*?]/g, '_').replace(/[^A-Za-z0-9._ -]/g, '_').slice(0, 120);
+  const cleaned = raw.replace(/[\\/\r\n"< >|:*?]/g, '_').replace(/[^A-Za-z0-9._ -]/g, '_').slice(0, 120);
   return cleaned || 'download';
 }
 
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
     if (finishError) {
       await del(outputBlob.pathname);
       try { await del(inputPathname); } catch { /* best-effort cleanup */ }
-      try { const cleanup = await createClient(); await createAdminClient().rpc('release_compression_job', { p_user_id: user.id }); } catch { /* best effort */ }
+      try { await createAdminClient().rpc('release_compression_job', { p_user_id: user.id }); } catch { /* best effort */ }
       jobStarted = false;
       return NextResponse.json({ error: 'Could not record your compression usage.' }, { status: 500 });
     }
@@ -143,8 +143,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (userId && jobStarted) {
       try {
-        const supabase = await createClient();
-        await createAdminClient().rpc('release_compression_job', { p_user_id: user.id });
+        await createAdminClient().rpc('release_compression_job', { p_user_id: userId });
       } catch {
         // Expiring DB locks prevent a failed request from blocking a user forever.
       }
