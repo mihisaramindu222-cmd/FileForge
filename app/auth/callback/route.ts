@@ -7,13 +7,13 @@ function getPublicOrigin(request: Request) {
 
   const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
   if (productionHost && !/^(localhost|127\\.0\\.1)(:\\d+)?$/i.test(productionHost)) {
-    return `https://${productionHost.replace(/^https?:\\/\\//, '').replace(/\\/$/, '')}`;
+    return `https://${productionHost.replace(/^https?:\/\//, '').replace(/\/$/, '')}`;
   }
 
   const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim()
     || request.headers.get('host')?.split(',')[0]?.trim();
   const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim() || 'https';
-  if (forwardedHost && !/^(localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0)(:\\d+)?$/i.test(forwardedHost)) {
+  if (forwardedHost && !/^(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$/i.test(forwardedHost)) {
     return `${forwardedProto}://${forwardedHost}`;
   }
 
