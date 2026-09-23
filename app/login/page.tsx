@@ -54,7 +54,7 @@ export default function LoginPage() {
   return (
     <main className="auth-page">
       <div className="auth-card">
-        <a className="brand auth-brand" href="/">FileForge</a>
+        <div className="auth-top"><a className="brand auth-brand" href="/"><span className="brand-mark">F</span><span>FileForge</span></a><a className="auth-home-link" href="/">← Home</a></div>
         <span className="section-kicker">{mode === 'login' ? 'Welcome back' : 'Create your account'}</span>
         <h1>{mode === 'login' ? 'Log in to FileForge' : 'Start with FileForge'}</h1>
         <p>{mode === 'login' ? 'Track your plan and manage your subscription.' : 'Get 3 free compression jobs every day. Use a password of at least 12 characters.'}</p>
@@ -68,7 +68,7 @@ export default function LoginPage() {
         <button className="switch-button" type="button" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setMessage(''); setError(false); }}>
           {mode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Log in'}
         </button>
-        <a className="back-link" href="/">← Back to FileForge</a>
+        
       </div>
     </main>
   );
