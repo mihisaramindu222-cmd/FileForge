@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -11,6 +11,15 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const callbackError = new URLSearchParams(window.location.search).get('error');
+    if (callbackError) {
+      setError(true);
+      setMessage(callbackError.slice(0, 180));
+      window.history.replaceState({}, '', '/login');
+    }
+  }, []);
   async function requestReset() {
     setBusy(true); setMessage(''); setError(false);
     try {
