@@ -118,44 +118,54 @@ create table if not exists public.active_compression_jobs (
 
 enable row level security on public.active_compression_jobs;
 
-create or replace function public.start_compression_job()
+create or replace function public.start_compression_job(p_user_id uuid)
 returns jsonb
 language plpgsql
 security definer
 set search_path = ''
 as $$
 declare
-  uid uuid := auth.uid();
   user_plan text;
   used_count integer := 0;
   existing_started_at timestamptz;
 begin
-  if uid is null then raise exception 'Not authenticated'; end if;
-  select plan into user_plan from public.profiles where id = uid;
-  if user_plan is null then raise exception 'Profile not found'; end if;
+  if p_user_id is null then
+    raise exception 'Invalid user id';
+  end if;
 
-  perform pg_advisory_xact_lock(pg_catalog.hashtextextended(uid::text, 0));
+  select plan into user_plan
+    from public.profiles
+   where id = p_user_id;
+
+  if user_plan is null then
+    raise exception 'Profile not found';
+  end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_user_id::text, 0));
 
   select started_at into existing_started_at
-  from public.active_compression_jobs
-  where user_id = uid
-  for update;
+    from public.active_compression_jobs
+   where user_id = p_user_id
+   for update;
 
-  if existing_started_at is not null and existing_started_at > now() - interval '20 minutes' then
+  if existing_started_at is not null
+     and existing_started_at > now() - interval '20 minutes' then
     return jsonb_build_object('allowed', false, 'reason', 'busy');
   end if;
 
   if user_plan = 'free' then
     select coalesce(count, 0) into used_count
-    from public.usage_daily
-    where user_id = uid and usage_date = current_date;
+      from public.usage_daily
+     where user_id = p_user_id
+       and usage_date = current_date;
+
     if used_count >= 3 then
       return jsonb_build_object('allowed', false, 'plan', 'free', 'remaining', 0, 'limit', 3);
     end if;
   end if;
 
   insert into public.active_compression_jobs (user_id, started_at)
-  values (uid, now())
+  values (p_user_id, now())
   on conflict (user_id) do update set started_at = excluded.started_at;
 
   return jsonb_build_object(
@@ -167,42 +177,58 @@ begin
 end;
 $$;
 
-create or replace function public.finish_compression_job()
+create or replace function public.finish_compression_job(p_user_id uuid)
 returns jsonb
 language plpgsql
 security definer
 set search_path = ''
 as $$
 declare
-  uid uuid := auth.uid();
   user_plan text;
   used_count integer := 0;
 begin
-  if uid is null then raise exception 'Not authenticated'; end if;
-  if not exists (select 1 from public.active_compression_jobs where user_id = uid) then
+  if p_user_id is null then
+    raise exception 'Invalid user id';
+  end if;
+
+  if not exists (
+    select 1
+      from public.active_compression_jobs
+     where user_id = p_user_id
+  ) then
     raise exception 'No active compression job';
   end if;
 
-  select plan into user_plan from public.profiles where id = uid;
+  select plan into user_plan
+    from public.profiles
+   where id = p_user_id;
+
+  if user_plan is null then
+    raise exception 'Profile not found';
+  end if;
+
   insert into public.usage_daily (user_id, usage_date, count)
-  values (uid, current_date, 0)
+  values (p_user_id, current_date, 0)
   on conflict (user_id, usage_date) do nothing;
 
   select count into used_count
-  from public.usage_daily
-  where user_id = uid and usage_date = current_date
-  for update;
+    from public.usage_daily
+   where user_id = p_user_id
+     and usage_date = current_date
+   for update;
 
   if user_plan = 'free' and used_count >= 3 then
-    delete from public.active_compression_jobs where user_id = uid;
+    delete from public.active_compression_jobs where user_id = p_user_id;
     return jsonb_build_object('allowed', false, 'remaining', 0, 'limit', 3);
   end if;
 
   update public.usage_daily
-  set count = count + 1
-  where user_id = uid and usage_date = current_date;
+     set count = count + 1
+   where user_id = p_user_id
+     and usage_date = current_date;
 
-  delete from public.active_compression_jobs where user_id = uid;
+  delete from public.active_compression_jobs where user_id = p_user_id;
+
   return jsonb_build_object(
     'allowed', true,
     'plan', user_plan,
@@ -212,18 +238,28 @@ begin
 end;
 $$;
 
-create or replace function public.release_compression_job()
+create or replace function public.release_compression_job(p_user_id uuid)
 returns void
 language sql
 security definer
 set search_path = ''
 as $$
-  delete from public.active_compression_jobs where user_id = auth.uid();
+  delete from public.active_compression_jobs
+   where user_id = p_user_id;
 $$;
 
-revoke all on function public.start_compression_job() from public;
-revoke all on function public.finish_compression_job() from public;
-revoke all on function public.release_compression_job() from public;
-grant execute on function public.start_compression_job() to authenticated;
-grant execute on function public.finish_compression_job() to authenticated;
-grant execute on function public.release_compression_job() to authenticated;
+revoke all on function public.start_compression_job(uuid) from public;
+revoke all on function public.start_compression_job(uuid) from anon;
+revoke all on function public.start_compression_job(uuid) from authenticated;
+grant execute on function public.start_compression_job(uuid) to service_role;
+
+revoke all on function public.finish_compression_job(uuid) from public;
+revoke all on function public.finish_compression_job(uuid) from anon;
+revoke all on function public.finish_compression_job(uuid) from authenticated;
+grant execute on function public.finish_compression_job(uuid) to service_role;
+
+revoke all on function public.release_compression_job(uuid) from public;
+revoke all on function public.release_compression_job(uuid) from anon;
+revoke all on function public.release_compression_job(uuid) from authenticated;
+grant execute on function public.release_compression_job(uuid) to service_role;
+
