@@ -16,7 +16,7 @@ export default async function AccountPage() {
         <div className="dashboard-top"><div className="dashboard-nav-left"><a className="brand" href="/" aria-label="FileForge home"><span className="brand-mark">F</span><span>FileForge</span></a><a className="back-link dashboard-back" href="/">← Back to FileForge</a></div><AccountActions /></div>
         <div className="dashboard-hero"><span className="section-kicker">Your account</span><h1>Hello{user.email ? `, ${user.email}` : ''}.</h1><p>Your FileForge account is ready. All FileForge tools are currently free.</p></div>
         <div className="stats-grid">
-          <div className="stat-card"><span>Plan</span><strong>Free</strong><small>Unlimited daily jobs</small></div>
+          <div className="stat-card"><span>Access</span><strong>Free</strong><small>Unlimited daily jobs</small></div>
           <div className="stat-card"><span>Upload limit</span><strong>500 MB</strong><small>Maximum file size</small></div>
           <div className="stat-card"><span>Role</span><strong>{profile?.role === 'admin' ? 'Admin' : 'Member'}</strong><small>{profile?.role === 'admin' ? 'Full site management access' : 'Standard account'}</small></div>
         </div>
