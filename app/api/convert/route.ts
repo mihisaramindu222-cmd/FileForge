@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { convertFile, downloadInput, getConversion, ConverterError, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from '@/lib/converters';
 import type { ConversionId } from '@/lib/converters/types';
 import { signDownload } from '@/lib/download-token';
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Please log in to use FileForge converters.' }, { status: 401 });
 
+    const admin = createAdminClient();
     const body = await request.json() as { pathname?: unknown; filename?: unknown; conversionId?: unknown };
     inputPathname = typeof body.pathname === 'string' ? body.pathname : '';
     const filename = typeof body.filename === 'string' ? body.filename : 'file';
@@ -55,7 +57,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'The uploaded file does not match the selected converter.' }, { status: 400 });
     }
 
-    const start = await supabase.rpc('start_compression_job');
+    const start = await admin.rpc('start_compression_job', { p_user_id: user.id });
     if (start.error) return NextResponse.json({ error: 'Could not check your usage limit.' }, { status: 500 });
     if (!start.data?.allowed) {
       const message = start.data?.reason === 'busy'
@@ -97,11 +99,11 @@ export async function POST(request: Request) {
     const downloadSignature = signDownload(outputBlob.pathname, downloadFilename, downloadExpiresAt);
     const downloadUrl = `/api/download?pathname=${encodeURIComponent(outputBlob.pathname)}&filename=${encodeURIComponent(downloadFilename)}&expires=${downloadExpiresAt}&sig=${encodeURIComponent(downloadSignature)}`;
 
-    const finish = await supabase.rpc('finish_compression_job');
+    const finish = await admin.rpc('finish_compression_job', { p_user_id: user.id });
     if (finish.error || !finish.data?.allowed) {
       await del(outputBlob.pathname).catch(() => undefined);
       await del(inputPathname).catch(() => undefined);
-      try { await supabase.rpc('release_compression_job'); } catch { /* best-effort cleanup */ }
+      try { await createAdminClient().rpc('release_compression_job', { p_user_id: user.id }); } catch { /* best-effort cleanup */ }
       jobStarted = false;
       return NextResponse.json({ error: finish.error ? 'Could not record your FileForge usage.' : 'Your daily usage limit has been reached.' }, { status: 402 });
     }
