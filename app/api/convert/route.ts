@@ -37,11 +37,13 @@ export async function POST(request: Request) {
   let outputPathname = '';
   let workDir = '';
   let jobStarted = false;
+  let userId = '';
 
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Please log in to use FileForge converters.' }, { status: 401 });
+    userId = user.id;
 
     const admin = createAdminClient();
     const body = await request.json() as { pathname?: unknown; filename?: unknown; conversionId?: unknown };
@@ -114,7 +116,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ downloadUrl, inputBytes: result.inputBytes, outputBytes: result.outputBytes, outputFilename: downloadFilename, conversion: spec.label, expiresAt: downloadExpiresAt }, { headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
   } catch (error) {
     if (jobStarted) {
-      try { await createAdminClient().rpc('release_compression_job', { p_user_id: user?.id }); } catch { /* best-effort cleanup */ }
+      try { if (userId) await createAdminClient().rpc('release_compression_job', { p_user_id: userId }); } catch { /* best-effort cleanup */ }
     }
     if (outputPathname) await del(outputPathname).catch(() => undefined);
     if (inputPathname) await del(inputPathname).catch(() => undefined);
