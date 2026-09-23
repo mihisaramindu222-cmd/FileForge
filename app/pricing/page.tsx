@@ -23,7 +23,7 @@ export default function PricingPage() {
             <h2>$0 <small>forever</small></h2>
             <p className="price-note">Everything available to every account</p>
             <ul>
-              <li>3 successful jobs per day</li>
+              <li>Unlimited daily jobs</li>
               <li>Up to 500 MB upload size</li>
               <li>PDF compression with all optimization levels</li>
               <li>All FileForge file converters</li>
@@ -34,7 +34,7 @@ export default function PricingPage() {
           </article>
         </div>
 
-        <p className="fine-print">FileForge is currently offered as a free service. Ads may appear on the free experience to help cover hosting and processing costs.</p>
+        <p className="fine-print">FileForge is currently offered completely free. No subscription or payment is required. The service may apply short anti-abuse protections to keep processing available for everyone.</p>
       </div>
     </main>
   );
