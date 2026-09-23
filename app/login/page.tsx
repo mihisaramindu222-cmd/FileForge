@@ -24,6 +24,26 @@ export default function LoginPage() {
     } finally { setBusy(false); }
   }
 
+  async function continueWithGoogle() {
+    setBusy(true); setMessage(''); setError(false);
+    try {
+      const requestedNext = new URLSearchParams(window.location.search).get('next');
+      const next = requestedNext?.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/account';
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        },
+      });
+      if (error) throw error;
+    } catch (e) {
+      setError(true);
+      setMessage(e instanceof Error ? e.message : 'Could not continue with Google.');
+      setBusy(false);
+    }
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true); setMessage(''); setError(false);
@@ -64,6 +84,11 @@ export default function LoginPage() {
           <button className="primary" disabled={busy} type="submit">{busy ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'}</button>
           {mode === 'login' && <button className="switch-button" type="button" disabled={busy} onClick={requestReset}>Forgot password?</button>}
         </form>
+        <div className="auth-divider" aria-hidden="true"><span>OR</span></div>
+        <button className="google-button" type="button" disabled={busy} onClick={continueWithGoogle}>
+          <span className="google-icon" aria-hidden="true">G</span>
+          Continue with Google
+        </button>
         {message && <p className={error ? 'notice error' : 'notice success'}>{message}</p>}
         <button className="switch-button" type="button" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setMessage(''); setError(false); }}>
           {mode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Log in'}
