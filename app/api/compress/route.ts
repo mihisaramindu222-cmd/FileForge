@@ -109,7 +109,7 @@ export async function POST(request: Request) {
     if (finishError) {
       await del(outputBlob.pathname);
       try { await del(inputPathname); } catch { /* best-effort cleanup */ }
-      try { await createAdminClient().rpc('release_compression_job', { p_user_id: user.id }); } catch { /* best effort */ }
+      try { await supabase.rpc('release_compression_job'); } catch { /* best effort */ }
       jobStarted = false;
       return NextResponse.json({ error: 'Could not record your compression usage.' }, { status: 500 });
     }
