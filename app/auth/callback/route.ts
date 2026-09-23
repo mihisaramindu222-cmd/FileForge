@@ -6,7 +6,11 @@ export async function GET(request: Request) {
   const code = url.searchParams.get('code');
   const requestedNext = url.searchParams.get('next');
   const next = requestedNext?.startsWith('/') && !requestedNext.startsWith('//') ? requestedNext : '/account';
-  if (!code) return NextResponse.redirect(new URL('/login?error=missing_code', url.origin));
+  const oauthError = url.searchParams.get('error_description') || url.searchParams.get('error');
+  if (!code) {
+    const message = oauthError ? oauthError.slice(0, 180) : 'Google authentication did not return a valid authorization code.';
+    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(message)}`, url.origin));
+  }
   const supabase = await createClient();
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent('Authentication callback failed. Please try again.')}`, url.origin));
