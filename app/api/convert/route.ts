@@ -114,7 +114,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ downloadUrl, inputBytes: result.inputBytes, outputBytes: result.outputBytes, outputFilename: downloadFilename, conversion: spec.label, expiresAt: downloadExpiresAt }, { headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
   } catch (error) {
     if (jobStarted) {
-      try { const client = await createClient(); await client.rpc('release_compression_job'); } catch { /* best-effort cleanup */ }
+      try { await createAdminClient().rpc('release_compression_job', { p_user_id: user?.id }); } catch { /* best-effort cleanup */ }
     }
     if (outputPathname) await del(outputPathname).catch(() => undefined);
     if (inputPathname) await del(inputPathname).catch(() => undefined);
