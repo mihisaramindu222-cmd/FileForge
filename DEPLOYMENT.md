@@ -8,7 +8,6 @@ Set these in Vercel before deploying:
 - `NEXT_PUBLIC_CONTACT_EMAIL` — the real support/privacy email.
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `SUPABASE_SECRET_KEY` (or `SUPABASE_SERVICE_ROLE_KEY`)
 - `BLOB_READ_WRITE_TOKEN`
 - `DOWNLOAD_SIGNING_SECRET` — a random secret of at least 32 characters. Keep it server-only.
 - `CRON_SECRET`
@@ -16,11 +15,11 @@ Set these in Vercel before deploying:
 
 ## Supabase
 
-Run the current `supabase/schema.sql` in the Supabase SQL editor. It adds the shared rate-limit table/function and billing-event user linkage in addition to the existing FileForge tables/functions.
+Run the current `supabase/schema.sql` in the Supabase SQL editor. It keeps the authenticated job RPCs and shared rate-limit function in sync with the application. Stripe billing still requires the server secret when billing is enabled.
 
 ## Vercel container deployment
 
-Keep `Dockerfile.vercel` at the repository root. Vercel now supports root Dockerfile deployments as containerized Functions, which is why the native conversion tools can stay in the same deployment. The container exposes port 3000 and the runtime environment can override `PORT` when required.
+Keep `Dockerfile.vercel` at the repository root. Vercel now supports root Dockerfile deployments as containerized Functions, which is why the native conversion tools can stay in the same deployment. The container listens on the runtime `PORT` environment variable (default 3000). Vercel can override `PORT` for the container runtime.
 
 ## Vercel Hobby plan
 
