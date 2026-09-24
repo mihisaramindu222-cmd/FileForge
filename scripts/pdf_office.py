@@ -122,15 +122,18 @@ def make_docx_document(lines, image_paths):
 
 def make_docx(input_pdf, output_docx, tmp_dir):
     text_file = Path(tmp_dir) / "word.txt"
-    result = run(["pdftotext", "-layout", str(input_pdf), str(text_file)], timeout=60)
+    run(["pdftotext", "-layout", str(input_pdf), str(text_file)], timeout=60)
     raw = text_file.read_text(encoding="utf-8", errors="replace") if text_file.exists() else ""
     image_paths = []
     lines = []
-    if raw.strip():
-        lines = [line.rstrip("\r") for line in raw.splitlines()]
-        # Insert a page break at PDF page boundaries where possible.
-        pages = raw.split("\f")
-        lines = []
+    pages = raw.split("\f") if raw else []
+
+    # A PDF can contain both text pages and scanned/image-only pages. Mixing
+    # editable text with a few missing pages is worse than returning a faithful
+    # page image, so when any page has no extractable text we render the whole
+    # document as page images. This preserves all pages consistently.
+    page_has_text = bool(pages) and all(bool(re.sub(r"\s+", "", page)) for page in pages)
+    if raw.strip() and page_has_text:
         for i, page in enumerate(pages):
             page_lines = page.splitlines()
             lines.extend([line.rstrip("\r") for line in page_lines])
@@ -219,7 +222,8 @@ def make_pptx(images, output_pptx, title):
         z.writestr("docProps/core.xml", core_props(title))
         z.writestr("docProps/app.xml", '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>FileForge</Application><PresentationFormat>On-screen Show (16:9)</PresentationFormat></Properties>''')
         for index, image in enumerate(images, start=1):
-            z.writestr(f"ppt/slides/slide{index}.xml", slide_xml())
+            width, height = png_size(image)
+            z.writestr(f"ppt/slides/slide{index}.xml", slide_xml(width, height))
             z.writestr(f"ppt/slides/_rels/slide{index}.xml.rels", slide_rels().replace("../media/image1.png", f"../media/image{index}.png"))
             z.write(image, f"ppt/media/image{index}.png")
 
