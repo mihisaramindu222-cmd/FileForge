@@ -72,13 +72,15 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   user_role text;
   total_users bigint := 0;
   usage_rows jsonb := '[]'::jsonb;
 begin
-  if p_user_id is null then raise exception 'User id is required'; end if;
+  if p_user_id is null or auth.uid() is null or auth.uid() <> p_user_id then
+    raise exception 'Not authorized';
+  end if;
 
   select role into user_role from public.profiles where id = p_user_id;
   if user_role <> 'admin' then raise exception 'Not authorized'; end if;
@@ -101,22 +103,17 @@ begin
     limit 14
   ) daily;
 
-  return jsonb_build_object(
-    'total_users', total_users,
-    'recent_usage', usage_rows
-  );
+  return jsonb_build_object('total_users', total_users, 'recent_usage', usage_rows);
 end;
-$;
+$$;
 
 revoke all on function public.get_admin_dashboard(uuid) from public, anon, authenticated;
-grant execute on function public.get_admin_dashboard(uuid) to service_role;
+grant execute on function public.get_admin_dashboard(uuid) to authenticated;
 
 -- One-time admin setup example (replace the email and run once after signup):
 -- update public.profiles set role = 'admin' where email = 'you@example.com';
 
--- Concurrency-safe compression job locks. A lock expires after 20 minutes so a
--- crashed function cannot permanently block a user from submitting another job.
--- Shared rate limiting across Vercel instances. Only a one-way hash of the client bucket is stored.
+-- Shared rate limiting across Vercel instances.
 create table if not exists public.rate_limit_buckets (
   bucket text primary key,
   window_started_at timestamptz not null,
@@ -138,30 +135,45 @@ begin
   if p_max_requests < 1 or p_window_seconds < 1 then
     return jsonb_build_object('allowed', false);
   end if;
-  perform pg_advisory_xact_lock(pg_catalog.hashtextextended(p_bucket, 0));
-  select request_count, window_started_at into current_count, started from public.rate_limit_buckets where bucket = p_bucket for update;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_bucket, 0));
+
+  select request_count, window_started_at
+    into current_count, started
+    from public.rate_limit_buckets
+   where bucket = p_bucket
+   for update;
+
   if started is null or started <= now() - make_interval(secs => p_window_seconds) then
-    insert into public.rate_limit_buckets(bucket, window_started_at, request_count) values (p_bucket, now(), 1)
-    on conflict (bucket) do update set window_started_at = now(), request_count = 1;
+    insert into public.rate_limit_buckets(bucket, window_started_at, request_count)
+    values (p_bucket, now(), 1)
+    on conflict (bucket) do update
+      set window_started_at = now(), request_count = 1;
     return jsonb_build_object('allowed', true, 'remaining', greatest(p_max_requests - 1, 0));
   end if;
+
   if current_count >= p_max_requests then
     return jsonb_build_object('allowed', false, 'remaining', 0);
   end if;
-  update public.rate_limit_buckets set request_count = request_count + 1 where bucket = p_bucket;
+
+  update public.rate_limit_buckets
+     set request_count = request_count + 1
+   where bucket = p_bucket;
+
   return jsonb_build_object('allowed', true, 'remaining', greatest(p_max_requests - current_count - 1, 0));
 end;
 $$;
 
-revoke all on function public.check_rate_limit(text, integer, integer) from public;
+revoke all on function public.check_rate_limit(text, integer, integer) from public, anon, authenticated;
 grant execute on function public.check_rate_limit(text, integer, integer) to service_role;
 
+-- Concurrency-safe compression job locks. A lock expires after 20 minutes.
 create table if not exists public.active_compression_jobs (
   user_id uuid primary key references public.profiles(id) on delete cascade,
   started_at timestamptz not null default now()
 );
 
-enable row level security on public.active_compression_jobs;
+alter table public.active_compression_jobs enable row level security;
 
 create or replace function public.start_compression_job(p_user_id uuid)
 returns jsonb
@@ -173,21 +185,19 @@ declare
   existing_started_at timestamptz;
   user_plan text;
 begin
-  if p_user_id is null then raise exception 'User id is required'; end if;
-
-  select plan into user_plan
-    from public.profiles
-   where id = p_user_id;
-
-  if user_plan is null then
-    raise exception 'Profile not found';
+  if p_user_id is null or auth.uid() is null or auth.uid() <> p_user_id then
+    raise exception 'Not authorized';
   end if;
+
+  select plan into user_plan from public.profiles where id = p_user_id;
+  if user_plan is null then raise exception 'Profile not found'; end if;
 
   perform pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtextextended(p_user_id::text, 0)
   );
 
-  select started_at into existing_started_at
+  select started_at
+    into existing_started_at
     from public.active_compression_jobs
    where user_id = p_user_id
    for update;
@@ -199,15 +209,9 @@ begin
 
   insert into public.active_compression_jobs (user_id, started_at)
   values (p_user_id, now())
-  on conflict (user_id) do update
-    set started_at = excluded.started_at;
+  on conflict (user_id) do update set started_at = excluded.started_at;
 
-  return jsonb_build_object(
-    'allowed', true,
-    'plan', user_plan,
-    'remaining', -1,
-    'limit', 0
-  );
+  return jsonb_build_object('allowed', true, 'plan', user_plan, 'remaining', null, 'limit', null);
 end;
 $$;
 
@@ -221,23 +225,18 @@ declare
   user_plan text;
   used_count integer := 0;
 begin
-  if p_user_id is null then raise exception 'User id is required'; end if;
+  if p_user_id is null or auth.uid() is null or auth.uid() <> p_user_id then
+    raise exception 'Not authorized';
+  end if;
 
   if not exists (
-    select 1
-      from public.active_compression_jobs
-     where user_id = p_user_id
+    select 1 from public.active_compression_jobs where user_id = p_user_id
   ) then
     raise exception 'No active compression job';
   end if;
 
-  select plan into user_plan
-    from public.profiles
-   where id = uid;
-
-  if user_plan is null then
-    raise exception 'Profile not found';
-  end if;
+  select plan into user_plan from public.profiles where id = p_user_id;
+  if user_plan is null then raise exception 'Profile not found'; end if;
 
   insert into public.usage_daily (user_id, usage_date, count)
   values (p_user_id, current_date, 0)
@@ -245,23 +244,22 @@ begin
 
   select count into used_count
     from public.usage_daily
-   where user_id = uid
+   where user_id = p_user_id
      and usage_date = current_date
    for update;
 
   update public.usage_daily
      set count = count + 1
-   where user_id = uid
+   where user_id = p_user_id
      and usage_date = current_date;
 
-  delete from public.active_compression_jobs
-   where user_id = uid;
+  delete from public.active_compression_jobs where user_id = p_user_id;
 
   return jsonb_build_object(
     'allowed', true,
     'plan', user_plan,
-    'remaining', -1,
-    'limit', 0,
+    'remaining', null,
+    'limit', null,
     'used_today', used_count + 1
   );
 end;
@@ -269,24 +267,25 @@ $$;
 
 create or replace function public.release_compression_job(p_user_id uuid)
 returns void
-language sql
+language plpgsql
 security definer
 set search_path = ''
 as $$
-  delete from public.active_compression_jobs
-   where user_id = p_user_id;
+begin
+  if p_user_id is null or auth.uid() is null or auth.uid() <> p_user_id then
+    raise exception 'Not authorized';
+  end if;
+
+  delete from public.active_compression_jobs where user_id = p_user_id;
+end;
 $$;
 
-drop function if exists public.start_compression_job(uuid);
-drop function if exists public.finish_compression_job(uuid);
-drop function if exists public.release_compression_job(uuid);
-
 revoke all on function public.start_compression_job(uuid) from public, anon, authenticated;
-grant execute on function public.start_compression_job(uuid) to service_role;
+grant execute on function public.start_compression_job(uuid) to authenticated;
 
 revoke all on function public.finish_compression_job(uuid) from public, anon, authenticated;
-grant execute on function public.finish_compression_job(uuid) to service_role;
+grant execute on function public.finish_compression_job(uuid) to authenticated;
 
 revoke all on function public.release_compression_job(uuid) from public, anon, authenticated;
-grant execute on function public.release_compression_job(uuid) to service_role;
+grant execute on function public.release_compression_job(uuid) to authenticated;
 
