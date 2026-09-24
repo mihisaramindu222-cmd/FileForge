@@ -67,21 +67,21 @@ after insert on auth.users
 for each row execute function public.handle_new_user();
 
 -- Admin dashboard data. Access is limited to authenticated users whose own profile role is admin.
-create or replace function public.get_admin_dashboard()
+drop function if exists public.get_admin_dashboard();
+create or replace function public.get_admin_dashboard(p_user_id uuid)
 returns jsonb
 language plpgsql
 security definer
 set search_path = ''
 as $
 declare
-  uid uuid := auth.uid();
   user_role text;
   total_users bigint := 0;
   usage_rows jsonb := '[]'::jsonb;
 begin
-  if uid is null then raise exception 'Not authenticated'; end if;
+  if p_user_id is null then raise exception 'User id is required'; end if;
 
-  select role into user_role from public.profiles where id = uid;
+  select role into user_role from public.profiles where id = p_user_id;
   if user_role <> 'admin' then raise exception 'Not authorized'; end if;
 
   select count(*) into total_users from public.profiles;
@@ -110,9 +110,8 @@ end;
 $;
 
 revoke all on function public.get_admin_dashboard() from public;
-revoke all on function public.get_admin_dashboard() from anon;
-revoke all on function public.get_admin_dashboard() from authenticated;
-grant execute on function public.get_admin_dashboard() to authenticated, service_role;
+revoke all on function public.get_admin_dashboard(uuid) from anon, authenticated;
+grant execute on function public.get_admin_dashboard(uuid) to service_role;
 
 -- One-time admin setup example (replace the email and run once after signup):
 -- update public.profiles set role = 'admin' where email = 'you@example.com';
@@ -166,36 +165,34 @@ create table if not exists public.active_compression_jobs (
 
 enable row level security on public.active_compression_jobs;
 
-create or replace function public.start_compression_job()
+drop function if exists public.start_compression_job();
+create or replace function public.start_compression_job(p_user_id uuid)
 returns jsonb
 language plpgsql
 security definer
 set search_path = ''
 as $$
 declare
-  uid uuid := auth.uid();
   existing_started_at timestamptz;
   user_plan text;
 begin
-  if uid is null then
-    raise exception 'Not authenticated';
-  end if;
+  if p_user_id is null then raise exception 'User id is required'; end if;
 
   select plan into user_plan
     from public.profiles
-   where id = uid;
+   where id = p_user_id;
 
   if user_plan is null then
     raise exception 'Profile not found';
   end if;
 
   perform pg_catalog.pg_advisory_xact_lock(
-    pg_catalog.hashtextextended(uid::text, 0)
+    pg_catalog.hashtextextended(p_user_id::text, 0)
   );
 
   select started_at into existing_started_at
     from public.active_compression_jobs
-   where user_id = uid
+   where user_id = p_user_id
    for update;
 
   if existing_started_at is not null
@@ -204,7 +201,7 @@ begin
   end if;
 
   insert into public.active_compression_jobs (user_id, started_at)
-  values (uid, now())
+  values (p_user_id, now())
   on conflict (user_id) do update
     set started_at = excluded.started_at;
 
@@ -217,44 +214,42 @@ begin
 end;
 $$;
 
-create or replace function public.finish_compression_job()
+drop function if exists public.finish_compression_job();
+create or replace function public.finish_compression_job(p_user_id uuid)
 returns jsonb
 language plpgsql
 security definer
 set search_path = ''
 as $$
 declare
-  uid uuid := auth.uid();
   user_plan text;
   used_count integer := 0;
 begin
-  if uid is null then
-    raise exception 'Not authenticated';
-  end if;
+  if p_user_id is null then raise exception 'User id is required'; end if;
 
   if not exists (
     select 1
       from public.active_compression_jobs
-     where user_id = uid
+     where user_id = p_user_id
   ) then
     raise exception 'No active compression job';
   end if;
 
   select plan into user_plan
     from public.profiles
-   where id = uid;
+   where id = p_user_id;
 
   if user_plan is null then
     raise exception 'Profile not found';
   end if;
 
   insert into public.usage_daily (user_id, usage_date, count)
-  values (uid, current_date, 0)
+  values (p_user_id, current_date, 0)
   on conflict (user_id, usage_date) do nothing;
 
   select count into used_count
     from public.usage_daily
-   where user_id = uid
+   where user_id = p_user_id
      and usage_date = current_date
    for update;
 
@@ -264,7 +259,7 @@ begin
      and usage_date = current_date;
 
   delete from public.active_compression_jobs
-   where user_id = uid;
+   where user_id = p_user_id;
 
   return jsonb_build_object(
     'allowed', true,
@@ -276,14 +271,15 @@ begin
 end;
 $$;
 
-create or replace function public.release_compression_job()
+drop function if exists public.release_compression_job();
+create or replace function public.release_compression_job(p_user_id uuid)
 returns void
 language sql
 security definer
 set search_path = ''
 as $$
   delete from public.active_compression_jobs
-   where user_id = auth.uid();
+   where user_id = p_user_id;
 $$;
 
 drop function if exists public.start_compression_job(uuid);
@@ -291,14 +287,12 @@ drop function if exists public.finish_compression_job(uuid);
 drop function if exists public.release_compression_job(uuid);
 
 revoke all on function public.start_compression_job() from public;
-revoke all on function public.start_compression_job() from anon;
-revoke all on function public.start_compression_job() from authenticated;
-grant execute on function public.start_compression_job() to authenticated, service_role;
+revoke all on function public.start_compression_job(uuid) from anon, authenticated;
+grant execute on function public.start_compression_job(uuid) to service_role;
 
 revoke all on function public.finish_compression_job() from public;
-revoke all on function public.finish_compression_job() from anon;
-revoke all on function public.finish_compression_job() from authenticated;
-grant execute on function public.finish_compression_job() to authenticated, service_role;
+revoke all on function public.finish_compression_job(uuid) from anon, authenticated;
+grant execute on function public.finish_compression_job(uuid) to service_role;
 
 revoke all on function public.release_compression_job() from public;
 revoke all on function public.release_compression_job() from anon;
