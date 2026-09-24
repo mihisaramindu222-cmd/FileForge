@@ -15,9 +15,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const base = siteUrl.replace(/\/$/, '');
   return [
     { url: base, lastModified: new Date() },
-    { url: `${base}/login`, lastModified: new Date() },
     { url: `${base}/privacy`, lastModified: new Date() },
     { url: `${base}/terms`, lastModified: new Date() },
     { url: `${base}/support`, lastModified: new Date() },
+    { url: `${base}/pricing`, lastModified: new Date() },
   ];
 }
