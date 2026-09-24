@@ -1,3 +1,12 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy — FileForge',
+  description: 'FileForge privacy policy and information about file processing, accounts, payments and ads.',
+  alternates: { canonical: '/privacy' },
+  robots: { index: true, follow: true },
+};
+
 export default function PrivacyPage() {
   return <main className="legal-page"><article className="legal-card shell"><a className="brand" href="/">FileForge</a><span className="section-kicker">Privacy</span><h1>Privacy policy</h1><p>FileForge is designed to minimize the data needed to provide PDF compression, file conversion and account features.</p><h2>PDF files</h2><p>Uploaded files are stored temporarily in private Vercel Blob storage while they are processed. FileForge supports PDF, Office, spreadsheet, CSV and common image conversions. Input files are deleted after processing, and generated results are private and protected by a server-verified, short-lived download link rather than a permanent public URL.</p><h2>Processing and retention</h2><p>Files are processed only to perform the conversion or compression you request. Temporary processing files are removed when a job finishes or fails; a scheduled cleanup also removes expired temporary blobs. Download links expire after one hour and are rejected by the server after expiry.</p><h2>Accounts</h2><p>When you create an account, Supabase Auth processes your email and authentication credentials. FileForge stores a profile record containing your account identifier, email, plan and billing references.</p><h2>Payments</h2><p>Subscription payments are handled by Stripe. FileForge does not receive or store your full card number.</p><h2>Ads</h2><p>Free users may see Google AdSense ads after the site is approved and configured. Pro users are not shown FileForge ad slots.</p><h2>Contact</h2><p>For privacy questions or support requests, use the <a href="/support">FileForge support page</a>.</p><a className="back-link" href="/">← Back to FileForge</a></article></main>;
 }
