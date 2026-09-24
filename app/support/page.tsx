@@ -1,3 +1,12 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Support — FileForge',
+  description: 'Get help with FileForge uploads, compression, conversion, accounts and billing.',
+  alternates: { canonical: '/support' },
+  robots: { index: true, follow: true },
+};
+
 const SUPPORT_URL = 'https://github.com/mihisaramindu222-cmd/FileForge/issues/new';
 
 export default function SupportPage() {
