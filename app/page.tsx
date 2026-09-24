@@ -184,41 +184,120 @@ export default function Home() {
   const downloadExpired = Boolean(result?.expiresAt && clock >= result.expiresAt);
 
   return <main>
-    <header className="site-header"><div className="shell nav-inner"><a className="brand" href="#top" aria-label="FileForge home"><span className="brand-mark">F</span><span>FileForge</span></a><nav aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#tools">Converters</a><a href="#faq">FAQ</a><AuthNav /></nav></div></header>
+    <section className="ff-hero-shell">
+      <header className="ff-hero-nav shell">
+        <a className="ff-logo" href="#top" aria-label="FileForge home">
+          <span className="ff-logo-mark">F</span>
+          <span>FileForge</span>
+        </a>
+        <nav className="ff-main-nav" aria-label="Main navigation">
+          <a className="ff-nav-active" href="#top">Home</a>
+          <a href="#tools">Converters <span className="ff-chevron">⌄</span></a>
+          <a href="#tools">Tools <span className="ff-chevron">⌄</span></a>
+          <a href="/pricing">Pricing</a>
+          <a href="/support">About</a>
+        </nav>
+        <div className="ff-nav-actions">
+          <span className="ff-theme-dot" aria-hidden="true">☾</span>
+          <AuthNav />
+        </div>
+      </header>
 
-    <section id="top" className="hero shell"><div className="eyebrow">✦ Private file tools in one place</div><h1>Compress, convert,<br /><span>then download.</span></h1><p className="hero-copy">PDF compression plus practical PDF, Office, image and spreadsheet converters in one simple workspace.</p><div className="trust-row"><span>🔒 Private temporary files</span><span>⚡ Up to 500 MB</span><span>📥 Short-lived downloads</span></div></section>
+      <section id="top" className="ff-hero-content shell">
+        <div className="ff-hero-copy">
+          <div className="ff-pill"><span>✦</span> Fast · Secure · Easy to Use</div>
+          <h1>Convert, Compress<br />and Manage <span>Your Files</span><br />All in One Place</h1>
+          <p>FileForge is a powerful and easy-to-use online file converter that helps you convert, compress and manage your files in seconds. No installation. No hassle.</p>
+          <div className="ff-hero-buttons">
+            <button className="ff-gradient-btn" type="button" onClick={() => document.getElementById('tools')?.scrollIntoView({ behavior: 'smooth' })}>Start Converting <span>→</span></button>
+            <a className="ff-outline-btn" href="#tools">View All Tools</a>
+          </div>
+          <div className="ff-trust-items">
+            <span><b>◉</b><em>No Registration</em><small>Required</small></span>
+            <span><b>♢</b><em>Your Files</em><small>Are Safe</small></span>
+            <span><b>▣</b><em>Works on</em><small>Any Device</small></span>
+          </div>
+        </div>
 
-    <section id="tools" className="shell workspace" aria-labelledby="workspace-heading">
-      <div className="mode-tabs" role="tablist" aria-label="FileForge tools">
-        <button role="tab" aria-selected={mode === 'compress'} aria-controls="workspace-panel" type="button" className={mode === 'compress' ? 'active' : ''} onClick={() => changeMode('compress')}>PDF Compressor</button>
-        <button role="tab" aria-selected={mode === 'convert'} aria-controls="workspace-panel" type="button" className={mode === 'convert' ? 'active' : ''} onClick={() => changeMode('convert')}>File Converter</button>
-      </div>
-      <div id="workspace-panel" role="tabpanel" className="compress-card">
-        <div className="card-heading"><div><span className="section-kicker">{mode === 'compress' ? 'PDF compressor' : 'File converter'}</span><h2 id="workspace-heading">{mode === 'compress' ? 'Shrink your file' : 'Choose a conversion'}</h2><p>{mode === 'compress' ? 'Large PDFs upload directly to private storage, then the built-in Ghostscript engine compresses and validates them.' : 'Convert common PDF, Office, image and spreadsheet formats. Complex PDF-to-Office files may prioritize editable text or page fidelity depending on the source.'}</p></div><span className="limit-badge">500 MB max</span></div>
+        <div className="ff-studio-wrap">
+          <div className="ff-orbit ff-orbit-one" />
+          <div className="ff-orbit ff-orbit-two" />
+          <div className="ff-file-float ff-pdf-float">PDF</div>
+          <div className="ff-file-float ff-image-float">▧</div>
+          <div className="ff-file-float ff-zip-float">ZIP</div>
+          <div className="ff-file-float ff-doc-float">▤</div>
 
-        {mode === 'convert' && <div className="field tool-picker"><label htmlFor="conversion-tool">Conversion</label><select id="conversion-tool" value={toolId} onChange={(event) => changeTool(event.target.value)} disabled={busy}><optgroup label="PDF → Office / Images">{pdfToOtherTools.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}</optgroup><optgroup label="Office → PDF">{officeToPdfTools.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}</optgroup><optgroup label="Image → PDF">{imageToPdfTools.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}</optgroup><optgroup label="Image → Image">{imageToImageTools.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}</optgroup><optgroup label="Office ↔ Office">{officeToOfficeTools.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}</optgroup><optgroup label="Spreadsheet">{spreadsheetTools.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}</optgroup></select><small>{tool.description}</small></div>}
+          <div className="ff-studio-card">
+            <div className="ff-studio-tabs">
+              <button className={mode === 'convert' ? 'active' : ''} type="button" onClick={() => changeMode('convert')}><span>◫</span>Convert</button>
+              <button className={mode === 'compress' ? 'active' : ''} type="button" onClick={() => changeMode('compress')}><span>↘</span>Compress</button>
+              <button type="button" onClick={() => setMode('convert')}><span>▧</span>Image Tools</button>
+              <button type="button" onClick={() => document.getElementById('tools')?.scrollIntoView({ behavior: 'smooth' })}><span>⋮⋮</span>More</button>
+            </div>
 
-        <input ref={inputRef} type="file" accept={mode === 'compress' ? '.pdf,application/pdf' : accept} hidden onChange={(event) => choose(event.target.files?.[0])} />
-        <div className={`drop ${file ? 'has-file' : ''}`} onDragOver={(event) => { event.preventDefault(); event.currentTarget.classList.add('dragging'); }} onDragLeave={(event) => event.currentTarget.classList.remove('dragging')} onDrop={onDrop} onKeyDown={onDropZoneKeyDown} onClick={() => !busy && inputRef.current?.click()} role="button" tabIndex={busy ? -1 : 0} aria-label="Choose a file or drag and drop one here"><div className="upload-icon">↥</div><strong>{file ? 'File selected' : 'Drop your file here'}</strong><span>{file ? 'Ready to process' : 'or click to browse your device'}</span><small>{mode === 'compress' ? 'PDF only' : tool.fromExtensions.join(' · ')} · maximum 500 MB</small>{!file && <><span className="secondary choose-file-button" aria-hidden="true">Choose file</span><small className="no-account-note">No signup required</small></>}</div>
-        {file && <div className="file-row"><div className="file-icon">{file.name.split('.').pop()?.slice(0,4).toUpperCase()}</div><div className="file-meta"><strong title={file.name}>{file.name}</strong><span>{formatBytes(file.size)}</span></div><button type="button" className="text-button" onClick={removeFile} disabled={busy}>Remove</button></div>}
+            <input ref={inputRef} type="file" accept={mode === 'compress' ? '.pdf,application/pdf' : accept} hidden onChange={(event) => choose(event.target.files?.[0])} />
+            <div className={\`ff-upload-box \${file ? 'has-file' : ''}\`} onDragOver={(event) => { event.preventDefault(); event.currentTarget.classList.add('dragging'); }} onDragLeave={(event) => event.currentTarget.classList.remove('dragging')} onDrop={onDrop} onKeyDown={onDropZoneKeyDown} onClick={() => !busy && inputRef.current?.click()} role="button" tabIndex={busy ? -1 : 0} aria-label="Choose a file or drag and drop one here">
+              <div className="ff-cloud-icon">⇧</div>
+              <strong>{file ? 'File selected' : 'Drop your files here'}</strong>
+              <span>{file ? 'Ready to process' : 'or click to browse'}</span>
+              <small>Supports: PDF, JPG, PNG, DOC, XLS, PPT and more...</small>
+              {!file && <button className="ff-studio-upload-btn" type="button" onClick={(event) => { event.stopPropagation(); inputRef.current?.click(); }}>Choose File</button>}
+            </div>
 
-        {mode === 'compress' && <div className="grid"><div className="field"><label htmlFor="target-size">Target size</label><select id="target-size" value={target} onChange={(event) => setTarget(event.target.value)} disabled={busy}><option value="best">Best possible size</option>{['400','300','200','100','50','20','10','5','1'].map((value) => <option value={value} key={value}>{value} MB</option>)}</select><small>Target is best-effort; the actual result is always reported.</small></div><div className="field"><label htmlFor="compression-level">Optimization level</label><select id="compression-level" value={level} onChange={(event) => setLevel(event.target.value)} disabled={busy}><option value="light">Light — preserve more quality</option><option value="balanced">Balanced — recommended</option><option value="strong">Strong — compact</option><option value="maximum">Maximum — most aggressive</option></select><small>Ghostscript adjusts image resolution and JPEG quality for each level.</small></div></div>}
+            {file && <div className="ff-selected-file"><span className="ff-mini-file">{file.name.split('.').pop()?.slice(0,4).toUpperCase()}</span><div><strong title={file.name}>{file.name}</strong><small>{formatBytes(file.size)}</small></div><button type="button" onClick={(event) => { event.stopPropagation(); removeFile(); }} disabled={busy}>×</button></div>}
 
-        <button className="primary" disabled={!file || busy} onClick={runJob} type="button">{busy ? <><span className="spinner" /> Processing…</> : <>{mode === 'compress' ? 'Compress PDF' : `Convert ${tool.label}`} <span>→</span></>}</button>
-        {phase === 'uploading' && <button className="text-button cancel-button" type="button" onClick={cancelUpload}>Cancel upload</button>}
-        {busy && <div className="progress-track" role="progressbar" aria-label="Processing progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><span style={{ width: `${progress}%` }} /></div>}
-        {message && <div className={`result ${error ? 'error' : ''}`} role="status" aria-live="polite"><span className="result-icon">{error ? '!' : '✓'}</span><div><strong>{message}</strong>{result && <span>{formatBytes(result.inputBytes)} → {formatBytes(result.outputBytes)}{mode === 'compress' ? ` · ${saved > 0 ? `${formatBytes(saved)} saved (${percent.toFixed(1)}%)` : 'No size reduction was possible.'}` : ` · ${result.conversion}`}</span>}</div></div>}
-        {result && <div className="result-actions">{downloadExpired ? <button type="button" className="secondary" onClick={() => { clearResult(); setMessage('The download link expired. Start another job to create a fresh link.'); setError(true); }}>Download link expired — start another</button> : <a className="primary inline-cta" href={result.downloadUrl} download={result.outputFilename} target="_blank" rel="noopener noreferrer">Download {mode === 'compress' ? 'compressed PDF' : result.outputFilename}</a>}<button type="button" className="secondary" onClick={resetWorkspace}>Start another</button></div>}
-        <p className="privacy">No signup is required to use FileForge. Input files are deleted after processing; results use a short-lived private download link. Create an account only when you want a persistent login.</p>
+            {mode === 'compress' && <div className="ff-studio-settings">
+              <div className="field"><label htmlFor="target-size">Target size</label><select id="target-size" value={target} onChange={(event) => setTarget(event.target.value)} disabled={busy}><option value="best">Best possible size</option>{['400','300','200','100','50','20','10','5','1'].map((value) => <option value={value} key={value}>{value} MB</option>)}</select></div>
+              <div className="field"><label htmlFor="compression-level">Compression</label><select id="compression-level" value={level} onChange={(event) => setLevel(event.target.value)} disabled={busy}><option value="light">Light</option><option value="balanced">Balanced</option><option value="strong">Strong</option><option value="maximum">Maximum</option></select></div>
+            </div>}
+
+            {mode === 'convert' && <div className="ff-studio-settings"><div className="field"><label htmlFor="conversion-tool">Conversion</label><select id="conversion-tool" value={toolId} onChange={(event) => changeTool(event.target.value)} disabled={busy}><optgroup label="PDF → Office / Images">{pdfToOtherTools.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}</optgroup><optgroup label="Office → PDF">{officeToPdfTools.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}</optgroup><optgroup label="Image → PDF">{imageToPdfTools.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}</optgroup><optgroup label="Image → Image">{imageToImageTools.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}</optgroup><optgroup label="Office ↔ Office">{officeToOfficeTools.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}</optgroup><optgroup label="Spreadsheet">{spreadsheetTools.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}</optgroup></select></div></div>}
+
+            <button className="ff-studio-action" disabled={!file || busy} onClick={runJob} type="button">{busy ? <><span className="spinner" /> Processing…</> : <>{mode === 'compress' ? 'Compress PDF' : \`Convert \${tool.label}\`} <span>→</span></>}</button>
+            {phase === 'uploading' && <button className="ff-cancel" type="button" onClick={cancelUpload}>Cancel upload</button>}
+            {busy && <div className="progress-track ff-progress" role="progressbar" aria-label="Processing progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}><span style={{ width: \`\${progress}%\` }} /></div>}
+            {message && <div className={\`ff-studio-result \${error ? 'error' : ''}\`} role="status" aria-live="polite"><span className="result-icon">{error ? '!' : '✓'}</span><div><strong>{message}</strong>{result && <span>{formatBytes(result.inputBytes)} → {formatBytes(result.outputBytes)}{mode === 'compress' ? \` · \${saved > 0 ? \`\${formatBytes(saved)} saved (\${percent.toFixed(1)}%)\` : 'No size reduction was possible.'}\` : \` · \${result.conversion}\`}</span>}</div></div>}
+            {result && <div className="ff-result-actions">{downloadExpired ? <button type="button" className="ff-outline-btn" onClick={() => { clearResult(); setMessage('The download link expired. Start another job to create a fresh link.'); setError(true); }}>Expired — start another</button> : <a className="ff-studio-action ff-download" href={result.downloadUrl} download={result.outputFilename} target="_blank" rel="noopener noreferrer">Download {mode === 'compress' ? 'compressed PDF' : result.outputFilename}</a>}<button type="button" className="ff-dark-btn" onClick={resetWorkspace}>Start another</button></div>}
+          </div>
+          <div className="ff-studio-caption">Private temporary files · 500 MB max · short-lived downloads</div>
+        </div>
+      </section>
+    </section>
+
+    <section className="ff-tool-section shell" id="tools">
+      <div className="ff-section-heading"><span>✦ Popular Conversions</span><h2>Everything You Need</h2><p>Quickly convert, compress and edit your files with our powerful tools.</p></div>
+      <div className="ff-tool-grid">
+        {[
+          ['▤','PDF Converter','Convert between PDF and other formats.','pdf-word'],
+          ['▧','Image Converter','JPG, PNG, WEBP and more.','jpg-png'],
+          ['▥','Document Converter','DOC, DOCX, XLS, PPT and more.','word-pdf'],
+          ['⇩','Compress Files','Reduce file size without losing quality.','compress'],
+          ['◫','JPG to PDF','Turn your images into PDF files.','jpg-pdf'],
+          ['W','PDF to Word','Edit your PDF as a Word file.','pdf-word'],
+          ['▧','WebP Converter','Convert WebP to JPG/PNG and more.','webp-jpg'],
+          ['…','More Tools','Explore all available tools and features.','pdf-word'],
+        ].map(([icon,title,desc,id], index) => <button key={title} type="button" className={\`ff-tool-card ff-tool-\${index + 1}\`} onClick={() => { if(id === 'compress') changeMode('compress'); else { changeMode('convert'); changeTool(id); } document.getElementById('tools')?.scrollIntoView({ behavior: 'smooth' }); }}><span className="ff-tool-icon">{icon}</span><span className="ff-tool-copy"><strong>{title}</strong><small>{desc}</small></span><b>→</b></button>)}
       </div>
     </section>
 
-    <section id="how-it-works" className="shell feature-section"><div className="section-head"><span className="section-kicker">How it works</span><h2>One workspace, two jobs</h2></div><div className="steps"><article><span>01</span><h3>Choose a tool</h3><p>Compress a PDF or select a file conversion from the menu.</p></article><article><span>02</span><h3>Upload securely</h3><p>Your file uploads directly to private temporary storage, up to 500 MB.</p></article><article><span>03</span><h3>Review and download</h3><p>FileForge reports the resulting size and gives you a short-lived download.</p></article></div></section>
+    <section className="ff-why-section">
+      <div className="shell ff-why-inner">
+        <div className="ff-why-copy"><span>✦ Why Choose FileForge?</span><h2>Built for Speed.<br />Designed for You.</h2><p>We focus on giving you a better file conversion experience with powerful features, high security and a clean interface.</p><a className="ff-gradient-btn ff-small-btn" href="#tools">Learn More <span>→</span></a></div>
+        <div className="ff-why-grid">
+          <article><span>ϟ</span><strong>Lightning Fast</strong><small>Convert and process your files in seconds.</small></article>
+          <article><span>♢</span><strong>Secure & Private</strong><small>Your files are never shared with anyone.</small></article>
+          <article><span>☁</span><strong>No Installation</strong><small>Works directly in your browser.</small></article>
+          <article><span>▣</span><strong>Fully Responsive</strong><small>Use it on any device, anywhere.</small></article>
+        </div>
+      </div>
+    </section>
 
-    <section className="shell converter-grid"><div className="section-head"><span className="section-kicker">All converters</span><h2>Everyday file conversions</h2></div><div className="converter-cards">{CONVERSIONS.map((item) => <button type="button" key={item.id} onClick={() => { changeMode('convert'); changeTool(item.id); document.getElementById('tools')?.scrollIntoView({ behavior: 'smooth' }); }}><strong>{item.label}</strong><span>{item.description}</span></button>)}</div></section>
-
-    <section id="faq" className="shell faq-section"><div className="section-head"><span className="section-kicker">FAQ</span><h2>Common questions</h2></div><div className="faq-list"><details open><summary>What is the maximum file size?</summary><p>500 MB for FileForge uploads. Large conversions can take longer, and actual processing time depends on the Vercel plan and the complexity of the source file.</p></details><details><summary>Does FileForge permanently store my files?</summary><p>Input files are deleted after processing. Output files are private and accessed with short-lived signed download links.</p></details><details><summary>Will PDF → Word preserve the exact layout?</summary><p>Text-based PDFs are converted into editable DOCX text. Scanned PDFs fall back to page images, which preserves appearance but is not the same as OCR.</p></details><details><summary>Will PDF → Excel detect tables perfectly?</summary><p>FileForge uses PDF text positioning to create rows and columns. Complex or scanned tables may need manual cleanup after conversion.</p></details></div></section>
-
-    <footer className="site-footer"><div className="shell footer-inner"><span>© {new Date().getFullYear()} FileForge</span><span>Private PDF compression and practical file conversion.</span><span><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a></span></div></footer>
+    <footer className="ff-site-footer">
+      <div className="shell ff-footer-inner">
+        <div className="ff-footer-brand"><a className="ff-logo" href="#top"><span className="ff-logo-mark">F</span><span>FileForge</span></a><small>Convert · Compress · Simplify</small></div>
+        <nav><a href="#top">Home</a><a href="#tools">Converters</a><a href="#tools">Tools</a><a href="/pricing">Pricing</a><a href="/support">About</a><a href="/support">Contact</a></nav>
+        <div className="ff-footer-social"><span>◉</span><span>◎</span><span>◍</span><span>↗</span><small>© {new Date().getFullYear()} FileForge. All rights reserved.</small></div>
+      </div>
+    </footer>
   </main>;
 }
