@@ -67,6 +67,7 @@ after insert on auth.users
 for each row execute function public.handle_new_user();
 
 -- Admin dashboard data. Access is limited to authenticated users whose own profile role is admin.
+drop function if exists public.get_admin_dashboard();
 create or replace function public.get_admin_dashboard(p_user_id uuid)
 returns jsonb
 language plpgsql
@@ -108,7 +109,8 @@ begin
 end;
 $;
 
-revoke all on function public.get_admin_dashboard(uuid) from public, anon, authenticated;
+revoke all on function public.get_admin_dashboard() from public;
+revoke all on function public.get_admin_dashboard(uuid) from anon, authenticated;
 grant execute on function public.get_admin_dashboard(uuid) to service_role;
 
 -- One-time admin setup example (replace the email and run once after signup):
@@ -163,6 +165,7 @@ create table if not exists public.active_compression_jobs (
 
 enable row level security on public.active_compression_jobs;
 
+drop function if exists public.start_compression_job();
 create or replace function public.start_compression_job(p_user_id uuid)
 returns jsonb
 language plpgsql
@@ -211,6 +214,7 @@ begin
 end;
 $$;
 
+drop function if exists public.finish_compression_job();
 create or replace function public.finish_compression_job(p_user_id uuid)
 returns jsonb
 language plpgsql
@@ -233,7 +237,7 @@ begin
 
   select plan into user_plan
     from public.profiles
-   where id = uid;
+   where id = p_user_id;
 
   if user_plan is null then
     raise exception 'Profile not found';
@@ -245,7 +249,7 @@ begin
 
   select count into used_count
     from public.usage_daily
-   where user_id = uid
+   where user_id = p_user_id
      and usage_date = current_date
    for update;
 
@@ -255,7 +259,7 @@ begin
      and usage_date = current_date;
 
   delete from public.active_compression_jobs
-   where user_id = uid;
+   where user_id = p_user_id;
 
   return jsonb_build_object(
     'allowed', true,
@@ -267,6 +271,7 @@ begin
 end;
 $$;
 
+drop function if exists public.release_compression_job();
 create or replace function public.release_compression_job(p_user_id uuid)
 returns void
 language sql
@@ -281,12 +286,16 @@ drop function if exists public.start_compression_job(uuid);
 drop function if exists public.finish_compression_job(uuid);
 drop function if exists public.release_compression_job(uuid);
 
-revoke all on function public.start_compression_job(uuid) from public, anon, authenticated;
+revoke all on function public.start_compression_job() from public;
+revoke all on function public.start_compression_job(uuid) from anon, authenticated;
 grant execute on function public.start_compression_job(uuid) to service_role;
 
-revoke all on function public.finish_compression_job(uuid) from public, anon, authenticated;
+revoke all on function public.finish_compression_job() from public;
+revoke all on function public.finish_compression_job(uuid) from anon, authenticated;
 grant execute on function public.finish_compression_job(uuid) to service_role;
 
-revoke all on function public.release_compression_job(uuid) from public, anon, authenticated;
-grant execute on function public.release_compression_job(uuid) to service_role;
+revoke all on function public.release_compression_job() from public;
+revoke all on function public.release_compression_job() from anon;
+revoke all on function public.release_compression_job() from authenticated;
+grant execute on function public.release_compression_job() to authenticated, service_role;
 
