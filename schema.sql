@@ -1,5 +1,5 @@
 -- FileForge production schema for Supabase Auth, plans, usage and Stripe billing.
--- Run in the Supabase SQL editor once.
+-- Keep this file aligned with the live production RPC signatures.
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -29,7 +29,8 @@ create table if not exists public.billing_events (
   created_at timestamptz not null default now()
 );
 
-alter table public.billing_events add column if not exists user_id uuid references public.profiles(id) on delete set null;
+alter table public.billing_events
+  add column if not exists user_id uuid references public.profiles(id) on delete set null;
 
 create index if not exists profiles_plan_idx on public.profiles(plan);
 create index if not exists profiles_subscription_idx on public.profiles(stripe_subscription_id);
@@ -41,10 +42,18 @@ alter table public.usage_daily enable row level security;
 alter table public.billing_events enable row level security;
 
 drop policy if exists "profiles_select_own" on public.profiles;
-create policy "profiles_select_own" on public.profiles for select to authenticated using ((select auth.uid()) = id);
+create policy "profiles_select_own"
+  on public.profiles
+  for select
+  to authenticated
+  using ((select auth.uid()) = id);
 
 drop policy if exists "usage_select_own" on public.usage_daily;
-create policy "usage_select_own" on public.usage_daily for select to authenticated using ((select auth.uid()) = user_id);
+create policy "usage_select_own"
+  on public.usage_daily
+  for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -53,42 +62,57 @@ security definer
 set search_path = ''
 as $$
 begin
-  insert into public.profiles (id, email) values (new.id, new.email)
-  on conflict (id) do update set email = excluded.email;
+  insert into public.profiles (id, email)
+  values (new.id, new.email)
+  on conflict (id) do update
+    set email = excluded.email;
   return new;
 end;
 $$;
 
 revoke all on function public.handle_new_user() from public;
+grant execute on function public.handle_new_user() to service_role;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
 
--- Admin dashboard data. Access is limited to authenticated users whose own profile role is admin.
+-- Admin dashboard data. The RPC is server-only; the server verifies the target
+-- user is an admin before returning aggregate dashboard data.
 drop function if exists public.get_admin_dashboard();
 create or replace function public.get_admin_dashboard(p_user_id uuid)
 returns jsonb
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   user_role text;
   total_users bigint := 0;
   usage_rows jsonb := '[]'::jsonb;
 begin
-  if p_user_id is null then raise exception 'User id is required'; end if;
+  if p_user_id is null then
+    raise exception 'User id is required';
+  end if;
 
-  select role into user_role from public.profiles where id = p_user_id;
-  if user_role <> 'admin' then raise exception 'Not authorized'; end if;
+  select role into user_role
+    from public.profiles
+   where id = p_user_id;
 
-  select count(*) into total_users from public.profiles;
+  if user_role <> 'admin' then
+    raise exception 'Not authorized';
+  end if;
+
+  select count(*) into total_users
+    from public.profiles;
 
   select coalesce(
     jsonb_agg(
-      jsonb_build_object('usage_date', usage_date, 'count', count)
+      jsonb_build_object(
+        'usage_date', usage_date,
+        'count', count
+      )
       order by usage_date desc
     ),
     '[]'::jsonb
@@ -96,10 +120,10 @@ begin
   into usage_rows
   from (
     select usage_date, sum(count)::bigint as count
-    from public.usage_daily
-    group by usage_date
-    order by usage_date desc
-    limit 14
+      from public.usage_daily
+     group by usage_date
+     order by usage_date desc
+     limit 14
   ) daily;
 
   return jsonb_build_object(
@@ -107,18 +131,12 @@ begin
     'recent_usage', usage_rows
   );
 end;
-$;
+$$;
 
 revoke all on function public.get_admin_dashboard() from public;
-revoke all on function public.get_admin_dashboard(uuid) from anon, authenticated;
+revoke all on function public.get_admin_dashboard(uuid) from public, anon, authenticated;
 grant execute on function public.get_admin_dashboard(uuid) to service_role;
 
--- One-time admin setup example (replace the email and run once after signup):
--- update public.profiles set role = 'admin' where email = 'you@example.com';
-
--- Concurrency-safe compression job locks. A lock expires after 20 minutes so a
--- crashed function cannot permanently block a user from submitting another job.
--- Shared rate limiting across Vercel instances. Only a one-way hash of the client bucket is stored.
 create table if not exists public.rate_limit_buckets (
   bucket text primary key,
   window_started_at timestamptz not null,
@@ -127,7 +145,19 @@ create table if not exists public.rate_limit_buckets (
 
 alter table public.rate_limit_buckets enable row level security;
 
-create or replace function public.check_rate_limit(p_bucket text, p_max_requests integer, p_window_seconds integer)
+create policy if not exists "rate_limit_buckets_no_client_access"
+  on public.rate_limit_buckets
+  as restrictive
+  for all
+  to anon, authenticated
+  using (false)
+  with check (false);
+
+create or replace function public.check_rate_limit(
+  p_bucket text,
+  p_max_requests integer,
+  p_window_seconds integer
+)
 returns jsonb
 language plpgsql
 security definer
@@ -140,22 +170,49 @@ begin
   if p_max_requests < 1 or p_window_seconds < 1 then
     return jsonb_build_object('allowed', false);
   end if;
-  perform pg_advisory_xact_lock(pg_catalog.hashtextextended(p_bucket, 0));
-  select request_count, window_started_at into current_count, started from public.rate_limit_buckets where bucket = p_bucket for update;
-  if started is null or started <= now() - make_interval(secs => p_window_seconds) then
-    insert into public.rate_limit_buckets(bucket, window_started_at, request_count) values (p_bucket, now(), 1)
-    on conflict (bucket) do update set window_started_at = now(), request_count = 1;
-    return jsonb_build_object('allowed', true, 'remaining', greatest(p_max_requests - 1, 0));
+
+  perform pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(p_bucket, 0)
+  );
+
+  select request_count, window_started_at
+    into current_count, started
+    from public.rate_limit_buckets
+   where bucket = p_bucket
+   for update;
+
+  if started is null
+     or started <= now() - make_interval(secs => p_window_seconds) then
+    insert into public.rate_limit_buckets(
+      bucket, window_started_at, request_count
+    )
+    values (p_bucket, now(), 1)
+    on conflict (bucket) do update
+      set window_started_at = now(),
+          request_count = 1;
+
+    return jsonb_build_object(
+      'allowed', true,
+      'remaining', greatest(p_max_requests - 1, 0)
+    );
   end if;
+
   if current_count >= p_max_requests then
     return jsonb_build_object('allowed', false, 'remaining', 0);
   end if;
-  update public.rate_limit_buckets set request_count = request_count + 1 where bucket = p_bucket;
-  return jsonb_build_object('allowed', true, 'remaining', greatest(p_max_requests - current_count - 1, 0));
+
+  update public.rate_limit_buckets
+     set request_count = request_count + 1
+   where bucket = p_bucket;
+
+  return jsonb_build_object(
+    'allowed', true,
+    'remaining', greatest(p_max_requests - current_count - 1, 0)
+  );
 end;
 $$;
 
-revoke all on function public.check_rate_limit(text, integer, integer) from public;
+revoke all on function public.check_rate_limit(text, integer, integer) from public, anon, authenticated;
 grant execute on function public.check_rate_limit(text, integer, integer) to service_role;
 
 create table if not exists public.active_compression_jobs (
@@ -163,7 +220,15 @@ create table if not exists public.active_compression_jobs (
   started_at timestamptz not null default now()
 );
 
-enable row level security on public.active_compression_jobs;
+alter table public.active_compression_jobs enable row level security;
+
+create policy if not exists "active_compression_jobs_no_client_access"
+  on public.active_compression_jobs
+  as restrictive
+  for all
+  to anon, authenticated
+  using (false)
+  with check (false);
 
 drop function if exists public.start_compression_job();
 create or replace function public.start_compression_job(p_user_id uuid)
@@ -176,7 +241,9 @@ declare
   existing_started_at timestamptz;
   user_plan text;
 begin
-  if p_user_id is null then raise exception 'User id is required'; end if;
+  if p_user_id is null then
+    raise exception 'User id is required';
+  end if;
 
   select plan into user_plan
     from public.profiles
@@ -197,7 +264,10 @@ begin
 
   if existing_started_at is not null
      and existing_started_at > now() - interval '20 minutes' then
-    return jsonb_build_object('allowed', false, 'reason', 'busy');
+    return jsonb_build_object(
+      'allowed', false,
+      'reason', 'busy'
+    );
   end if;
 
   insert into public.active_compression_jobs (user_id, started_at)
@@ -208,8 +278,8 @@ begin
   return jsonb_build_object(
     'allowed', true,
     'plan', user_plan,
-    'remaining', -1,
-    'limit', 0
+    'remaining', null,
+    'limit', null
   );
 end;
 $$;
@@ -225,7 +295,9 @@ declare
   user_plan text;
   used_count integer := 0;
 begin
-  if p_user_id is null then raise exception 'User id is required'; end if;
+  if p_user_id is null then
+    raise exception 'User id is required';
+  end if;
 
   if not exists (
     select 1
@@ -255,7 +327,7 @@ begin
 
   update public.usage_daily
      set count = count + 1
-   where user_id = uid
+   where user_id = p_user_id
      and usage_date = current_date;
 
   delete from public.active_compression_jobs
@@ -264,8 +336,8 @@ begin
   return jsonb_build_object(
     'allowed', true,
     'plan', user_plan,
-    'remaining', -1,
-    'limit', 0,
+    'remaining', null,
+    'limit', null,
     'used_today', used_count + 1
   );
 end;
@@ -286,16 +358,11 @@ drop function if exists public.start_compression_job(uuid);
 drop function if exists public.finish_compression_job(uuid);
 drop function if exists public.release_compression_job(uuid);
 
-revoke all on function public.start_compression_job() from public;
-revoke all on function public.start_compression_job(uuid) from anon, authenticated;
+revoke all on function public.start_compression_job(uuid) from public, anon, authenticated;
 grant execute on function public.start_compression_job(uuid) to service_role;
 
-revoke all on function public.finish_compression_job() from public;
-revoke all on function public.finish_compression_job(uuid) from anon, authenticated;
+revoke all on function public.finish_compression_job(uuid) from public, anon, authenticated;
 grant execute on function public.finish_compression_job(uuid) to service_role;
 
-revoke all on function public.release_compression_job() from public;
-revoke all on function public.release_compression_job() from anon;
-revoke all on function public.release_compression_job() from authenticated;
-grant execute on function public.release_compression_job() to authenticated, service_role;
-
+revoke all on function public.release_compression_job(uuid) from public, anon, authenticated;
+grant execute on function public.release_compression_job(uuid) to service_role;
