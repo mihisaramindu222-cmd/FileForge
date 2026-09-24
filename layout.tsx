@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
+import { Analytics } from '@vercel/analytics/next';
 
 const FALLBACK_SITE_URL = 'https://fileforge-final-deploy.vercel.app';
 
@@ -49,5 +50,5 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const adsClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
-  return <html lang="en"><body>{children}{adsClient && <Script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsClient}`} crossOrigin="anonymous" />}</body></html>;
+  return <html lang="en"><body>{children}{adsClient && <Script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsClient}`} crossOrigin="anonymous" />}<Analytics /></body></html>;
 }
