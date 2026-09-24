@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
+import { Analytics } from '@vercel/analytics/next';
 
 const FALLBACK_SITE_URL = 'https://fileforge-final-deploy.vercel.app';
 
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             crossOrigin="anonymous"
           />
         )}
+        <Analytics />
       </body>
     </html>
   );
