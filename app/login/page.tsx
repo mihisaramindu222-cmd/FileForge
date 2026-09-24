@@ -1,3 +1,12 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Log in — FileForge',
+  description: 'Log in or create a FileForge account.',
+  alternates: { canonical: '/login' },
+  robots: { index: false, follow: true },
+};
+
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
