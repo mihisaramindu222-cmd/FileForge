@@ -133,7 +133,6 @@ begin
 end;
 $$;
 
-revoke all on function public.get_admin_dashboard() from public;
 revoke all on function public.get_admin_dashboard(uuid) from public, anon, authenticated;
 grant execute on function public.get_admin_dashboard(uuid) to service_role;
 
