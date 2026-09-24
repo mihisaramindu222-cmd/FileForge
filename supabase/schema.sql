@@ -145,9 +145,9 @@ create table if not exists public.rate_limit_buckets (
 
 alter table public.rate_limit_buckets enable row level security;
 
-create policy if not exists "rate_limit_buckets_no_client_access"
+drop policy if exists "rate_limit_buckets_no_client_access" on public.rate_limit_buckets;
+create policy "rate_limit_buckets_no_client_access"
   on public.rate_limit_buckets
-  as restrictive
   for all
   to anon, authenticated
   using (false)
@@ -222,9 +222,9 @@ create table if not exists public.active_compression_jobs (
 
 alter table public.active_compression_jobs enable row level security;
 
-create policy if not exists "active_compression_jobs_no_client_access"
+drop policy if exists "active_compression_jobs_no_client_access" on public.active_compression_jobs;
+create policy "active_compression_jobs_no_client_access"
   on public.active_compression_jobs
-  as restrictive
   for all
   to anon, authenticated
   using (false)
