@@ -353,10 +353,6 @@ as $$
    where user_id = p_user_id;
 $$;
 
-drop function if exists public.start_compression_job(uuid);
-drop function if exists public.finish_compression_job(uuid);
-drop function if exists public.release_compression_job(uuid);
-
 revoke all on function public.start_compression_job(uuid) from public, anon, authenticated;
 grant execute on function public.start_compression_job(uuid) to service_role;
 
