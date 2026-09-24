@@ -1,0 +1,31 @@
+name: FileForge container diagnostics
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  container-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show tool versions
+        run: |
+          docker version
+          node --version
+          python3 --version
+
+      - name: Validate Python converter
+        run: python3 -m py_compile scripts/pdf_office.py
+
+      - name: Build the exact Vercel container
+        run: docker build --progress=plain -f Dockerfile.vercel -t fileforge-vercel-ci:latest .
+
+      - name: Inspect built image
+        run: docker image inspect fileforge-vercel-ci:latest --format '{{.Architecture}} {{.Os}} {{.Config.ExposedPorts}} {{.Config.Entrypoint}} {{.Config.Cmd}}'
