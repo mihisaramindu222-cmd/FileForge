@@ -81,7 +81,7 @@ declare
 begin
   if uid is null then raise exception 'Not authenticated'; end if;
 
-  select role into user_role from public.profiles where id = uid;
+  select role into user_role from public.profiles where id = p_user_id;
   if user_role <> 'admin' then raise exception 'Not authorized'; end if;
 
   select count(*) into total_users from public.profiles;
@@ -183,19 +183,19 @@ begin
 
   select plan into user_plan
     from public.profiles
-   where id = uid;
+   where id = p_user_id;
 
   if user_plan is null then
     raise exception 'Profile not found';
   end if;
 
   perform pg_catalog.pg_advisory_xact_lock(
-    pg_catalog.hashtextextended(uid::text, 0)
+    pg_catalog.hashtextextended(p_user_id::text, 0)
   );
 
   select started_at into existing_started_at
     from public.active_compression_jobs
-   where user_id = uid
+   where user_id = p_user_id
    for update;
 
   if existing_started_at is not null
@@ -204,7 +204,7 @@ begin
   end if;
 
   insert into public.active_compression_jobs (user_id, started_at)
-  values (uid, now())
+  values (p_user_id, now())
   on conflict (user_id) do update
     set started_at = excluded.started_at;
 
@@ -235,14 +235,14 @@ begin
   if not exists (
     select 1
       from public.active_compression_jobs
-     where user_id = uid
+     where user_id = p_user_id
   ) then
     raise exception 'No active compression job';
   end if;
 
   select plan into user_plan
     from public.profiles
-   where id = uid;
+   where id = p_user_id;
 
   if user_plan is null then
     raise exception 'Profile not found';
@@ -254,17 +254,17 @@ begin
 
   select count into used_count
     from public.usage_daily
-   where user_id = uid
+   where user_id = p_user_id
      and usage_date = current_date
    for update;
 
   update public.usage_daily
      set count = count + 1
-   where user_id = uid
+   where user_id = p_user_id
      and usage_date = current_date;
 
   delete from public.active_compression_jobs
-   where user_id = uid;
+   where user_id = p_user_id;
 
   return jsonb_build_object(
     'allowed', true,
