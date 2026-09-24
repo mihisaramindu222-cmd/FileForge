@@ -125,7 +125,7 @@ async function validateGeneratedOutput(spec: ConversionSpec, outputPath: string)
   const ext = path.extname(outputPath).toLowerCase();
   if (['.docx', '.pptx', '.xlsx', '.zip'].includes(ext)) {
     await runOrThrow('unzip', ['-t', outputPath], path.dirname(outputPath), undefined, 30_000);
-    if (ext === '.docx' || ext === '.pptx') {
+    if (ext === '.docx' || ext === '.pptx' || ext === '.xlsx') {
       const validationDir = path.join(path.dirname(outputPath), 'office-validation');
       await fs.mkdir(validationDir, { recursive: true });
       await runOrThrow('libreoffice', [
@@ -135,6 +135,11 @@ async function validateGeneratedOutput(spec: ConversionSpec, outputPath: string)
       ], validationDir, { ...process.env, HOME: validationDir }, 90_000);
       const renderedPdf = await commandOutputPath(validationDir, '.pdf');
       await runOrThrow('pdfinfo', [renderedPdf], validationDir, undefined, 30_000);
+    } else if (ext === '.zip') {
+      const listing = await commandResult({ command: 'unzip', argv: ['-Z1', outputPath], cwd: path.dirname(outputPath), timeoutMs: 30_000 });
+      if (listing.timedOut || listing.exitCode !== 0 || !listing.stdout.trim()) {
+        throw new ConverterError('The conversion produced an empty ZIP archive.', 422);
+      }
     }
     return;
   }
@@ -158,8 +163,17 @@ async function validateGeneratedOutput(spec: ConversionSpec, outputPath: string)
     }
   }
   if (ext === '.csv') {
-    const sample = await fs.readFile(outputPath, { encoding: 'utf8' });
-    if (!sample.trim()) throw new ConverterError('The conversion produced an empty CSV file.', 422);
+    const handle = await fs.open(outputPath, 'r');
+    try {
+      const sampleBytes = Math.min(1024 * 1024, (await handle.stat()).size);
+      const buffer = Buffer.alloc(sampleBytes);
+      const { bytesRead } = await handle.read(buffer, 0, sampleBytes, 0);
+      if (!buffer.subarray(0, bytesRead).toString('utf8').trim()) {
+        throw new ConverterError('The conversion produced an empty CSV file.', 422);
+      }
+    } finally {
+      await handle.close();
+    }
   }
 }
 
@@ -261,8 +275,14 @@ export async function convertFile(inputPath: string, filename: string, conversio
       const textStat = await fs.stat(textPath);
       if (textStat.size > 100 * 1024 * 1024) throw new ConverterError('The PDF contains too much extracted text for a safe Excel conversion. Please split the PDF and try again.', 413);
       const raw = await fs.readFile(textPath, 'utf8');
+      if (!raw.trim()) {
+        throw new ConverterError('This PDF does not contain extractable text. Scanned PDFs cannot be converted reliably to Excel yet.', 422);
+      }
       const rows = raw.split(/\r?\n/).map((line) => line.trimEnd()).filter((line) => line.trim().length > 0).map((line) => line.split(/\s{2,}/).map((cell) => cell.trim()));
-      const tsv = rows.length ? rows.map((row) => row.map((cell) => cell.replace(/\t/g, ' ')).join('\t')).join('\n') : 'No extractable table text found.';
+      if (!rows.length) {
+        throw new ConverterError('This PDF does not contain an extractable table.', 422);
+      }
+      const tsv = rows.map((row) => row.map((cell) => cell.replace(/\t/g, ' ')).join('\t')).join('\n');
       const tsvPath = path.join(workDir, `${stem}.tsv`);
       await fs.writeFile(tsvPath, tsv, 'utf8');
       const outputDir = path.join(workDir, 'excel-output');
