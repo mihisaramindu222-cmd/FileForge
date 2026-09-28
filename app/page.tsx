@@ -45,6 +45,14 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get('converter');
+    if (!requested || !CONVERSIONS.some((item) => item.id === requested)) return;
+    setMode('convert');
+    setToolId(requested);
+    window.requestAnimationFrame(() => document.getElementById('tools')?.scrollIntoView({ behavior: 'smooth' }));
+  }, []);
+
+  useEffect(() => {
     if (!result?.expiresAt) return;
     const timer = window.setInterval(() => setClock(Date.now()), 1000);
     return () => window.clearInterval(timer);
@@ -215,7 +223,7 @@ export default function Home() {
 
     <section id="how-it-works" className="shell feature-section"><div className="section-head"><span className="section-kicker">How it works</span><h2>One workspace, two jobs</h2></div><div className="steps"><article><span>01</span><h3>Choose a tool</h3><p>Compress a PDF or select a file conversion from the menu.</p></article><article><span>02</span><h3>Upload securely</h3><p>Your file uploads directly to private temporary storage, up to 500 MB.</p></article><article><span>03</span><h3>Review and download</h3><p>FileForge reports the resulting size and gives you a short-lived download.</p></article></div></section>
 
-    <section className="shell converter-grid"><div className="section-head"><span className="section-kicker">All converters</span><h2>Everyday file conversions</h2></div><div className="converter-cards">{CONVERSIONS.map((item) => <button type="button" key={item.id} onClick={() => { changeMode('convert'); changeTool(item.id); document.getElementById('tools')?.scrollIntoView({ behavior: 'smooth' }); }}><strong>{item.label}</strong><span>{item.description}</span></button>)}</div></section>
+    <section className="shell converter-grid"><div className="section-head"><span className="section-kicker">All converters</span><h2>Everyday file conversions</h2></div><div className="converter-cards">{CONVERSIONS.map((item) => <a className="converter-card" href={`/convert/${item.id}`} key={item.id}><strong>{item.label}</strong><span>{item.description}</span><em>Use this converter →</em></a>)}</div></section>
 
     <section id="faq" className="shell faq-section"><div className="section-head"><span className="section-kicker">FAQ</span><h2>Common questions</h2></div><div className="faq-list"><details open><summary>What is the maximum file size?</summary><p>500 MB for FileForge uploads. Large conversions can take longer, and actual processing time depends on the Vercel plan and the complexity of the source file.</p></details><details><summary>Does FileForge permanently store my files?</summary><p>Input files are deleted after processing. Output files are private and accessed with short-lived signed download links.</p></details><details><summary>Will PDF → Word preserve the exact layout?</summary><p>Text-based PDFs are converted into editable DOCX text. Scanned PDFs fall back to page images, which preserves appearance but is not the same as OCR.</p></details><details><summary>Will PDF → Excel detect tables perfectly?</summary><p>FileForge uses PDF text positioning to create rows and columns. Complex or scanned tables may need manual cleanup after conversion.</p></details></div></section>
 

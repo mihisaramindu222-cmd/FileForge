@@ -6,8 +6,14 @@ const FALLBACK_SITE_URL = 'https://fileforge-final-deploy.vercel.app';
 
 function getSiteUrl() {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (configured && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/i.test(configured) && !/\.example(?:\.com)?\/?$/i.test(configured)) {
-    return configured.replace(/\/$/, '');
+  if (configured) {
+    try {
+      const url = new URL(configured);
+      const host = url.hostname.toLowerCase();
+      if ((url.protocol === 'https:' || url.protocol === 'http:') && host !== 'localhost' && host !== '127.0.0.1' && !host.endsWith('.example.com')) {
+        return url.origin;
+      }
+    } catch {}
   }
   const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
   if (productionHost && !/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(productionHost)) {
@@ -20,14 +26,13 @@ const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: 'FileForge — PDF Compressor & File Converter',
-  description: 'Compress PDFs and convert common PDF, Office, image and spreadsheet files online with private temporary processing.',
-  keywords: ['PDF compressor', 'file converter', 'PDF converter', 'Word to PDF', 'PDF to Word', 'JPG to PNG', 'PNG to JPG', 'PDF to Excel'],
+  title: 'FileForge — Free Online File Converter & PDF Compressor',
+  description: 'Free online file converter and PDF compressor. Convert PDF, Word, PowerPoint, Excel, JPG, PNG and more with private temporary processing.',
   applicationName: 'FileForge',
   alternates: { canonical: '/' },
   openGraph: {
-    title: 'FileForge — PDF Compressor & File Converter',
-    description: 'Compress PDFs and convert common file formats online with private temporary processing.',
+    title: 'FileForge — Free Online File Converter & PDF Compressor',
+    description: 'Free online file conversion and PDF compression for PDF, Word, PowerPoint, Excel and common image formats.',
     type: 'website',
     url: siteUrl,
     siteName: 'FileForge',
