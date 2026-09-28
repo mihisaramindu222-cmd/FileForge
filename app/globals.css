@@ -200,3 +200,29 @@ body{
 .google-button:hover:not(:disabled){transform:translateY(-1px);border-color:#c8bcda;box-shadow:0 10px 24px rgba(76,29,149,.10)}
 .google-button:focus-visible{outline:3px solid rgba(124,58,237,.18);outline-offset:2px}
 .google-icon{display:grid;place-items:center;width:22px;height:22px;font-size:19px;line-height:1;font-weight:900;font-family:Arial,sans-serif;background:conic-gradient(from -45deg,#4285f4 0 25%,#34a853 25% 50%,#fbbc05 50% 75%,#ea4335 75% 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* SEO landing pages */
+.seo-page{min-height:100vh;background:transparent}
+.seo-topbar{position:sticky;top:0;z-index:20;background:rgba(250,249,255,.88);backdrop-filter:blur(14px);border-bottom:1px solid #e4daf1}
+.seo-topbar-inner{height:70px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.seo-back{font-size:13px;font-weight:800;color:#6d28d9}
+.seo-content{padding:24px 0 84px}
+.seo-breadcrumbs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:#817a91;font-size:12px;font-weight:700;margin-bottom:24px}
+.seo-breadcrumbs a{color:#6d28d9}.seo-breadcrumbs span:last-child{color:#5e576d}
+.seo-hero{text-align:center;padding:44px 0 42px}
+.seo-hero h1{font-size:clamp(40px,6vw,64px);line-height:1;letter-spacing:-.06em;margin:12px auto 16px;max-width:900px}
+.seo-hero p{max-width:760px;margin:0 auto;color:var(--muted);font-size:17px}
+.seo-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:24px}.seo-actions .primary,.seo-actions .secondary{margin:0;width:auto!important}
+.seo-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.seo-card{background:rgba(255,255,255,.88);border:1px solid rgba(225,216,242,.92);border-radius:22px;padding:26px;box-shadow:0 20px 60px rgba(76,29,149,.08);backdrop-filter:blur(12px)}
+.seo-card h2{margin:6px 0 14px;font-size:25px;letter-spacing:-.035em}
+.seo-facts{display:grid;grid-template-columns:1fr 1fr;gap:10px}.seo-facts>div{padding:14px;border:1px solid #e9e1f2;border-radius:14px;background:linear-gradient(145deg,#fff,#fbf8ff)}
+.seo-facts span,.seo-facts strong{display:block}.seo-facts span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#888198;font-weight:850}.seo-facts strong{font-size:14px;margin-top:4px}
+.seo-steps{display:grid;gap:12px;padding-left:22px;margin:12px 0 0}.seo-steps li{padding-left:2px}.seo-steps strong{display:block;font-size:14px}.seo-steps span{display:block;color:var(--muted);font-size:13px;margin-top:3px}
+.seo-explanation{margin-top:16px}.seo-explanation p{color:var(--muted);font-size:14px}.seo-section-head{margin-bottom:18px}.seo-section-head h2{font-size:27px;margin-top:7px}.seo-faq{max-width:none}
+.seo-related{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.seo-related a{display:flex;flex-direction:column;gap:6px;padding:16px;border:1px solid #e9e1f2;border-radius:14px;background:#fff;transition:.18s ease}.seo-related a:hover{transform:translateY(-2px);border-color:#cdbdf0;box-shadow:0 16px 34px rgba(76,29,149,.08)}.seo-related strong{color:#5b21b6;font-size:14px}.seo-related span{color:var(--muted);font-size:12px;line-height:1.45}
+.converter-card em{font-style:normal;color:#7c3aed;font-size:11px;font-weight:850;margin-top:auto}
+.converter-cards a.converter-card{display:flex;flex-direction:column;gap:7px;text-align:left;border:1px solid var(--line);background:rgba(255,255,255,.82);border-radius:16px;padding:18px;cursor:pointer;box-shadow:0 10px 30px rgba(76,29,149,.05);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+.converter-cards a.converter-card:hover{transform:translateY(-4px);border-color:#cdbdf0;box-shadow:0 20px 46px rgba(76,29,149,.10)}
+.converter-cards a.converter-card strong{color:#5b21b6}.converter-cards a.converter-card span{font-size:12px;line-height:1.45;color:var(--muted)}
+@media(max-width:760px){.seo-topbar-inner{height:62px}.seo-content{padding-top:18px}.seo-hero{padding-top:36px}.seo-grid{grid-template-columns:1fr}.seo-related{grid-template-columns:1fr}.seo-card{padding:20px}.seo-facts{grid-template-columns:1fr}.seo-actions{display:grid}.seo-actions .primary,.seo-actions .secondary{width:100%!important}}
